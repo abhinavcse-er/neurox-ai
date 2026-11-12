@@ -1,252 +1,280 @@
-// ===== Firebase Imports =====
+// NeuroX AI — browser client (Firebase Auth + secure backend API)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// ===== Firebase Config =====
-// For a plain HTML/JS project (no bundler) these values are inline.
-// Keep Firebase Auth rules tight — these are not secret (they're public by design),
-// but limit which domains can call your Firebase project in the Firebase Console.
 const firebaseConfig = {
-  apiKey:            "AIzaSyBfLn_JxmovMapRqby9RrdceaOc0Mmeo6Y",
-  authDomain:        "eurox-ai-2cd91.firebaseapp.com",
-  projectId:         "neurox-ai-2cd91",
-  storageBucket:     "neurox-ai-2cd91.appspot.com",
+  apiKey: "AIzaSyBfLn_JxmovMapRqby9RrdceaOc0Mmeo6Y",
+  authDomain: "eurox-ai-2cd91.firebaseapp.com",
+  projectId: "neurox-ai-2cd91",
+  storageBucket: "neurox-ai-2cd91.appspot.com",
   messagingSenderId: "242667828902",
-  appId:             "1:242667828902:web:d4be4ca6e8c2ec75726667",
+  appId: "1:242667828902:web:d4be4ca6e8c2ec75726667",
 };
 
-// ===== Initialize Firebase =====
-const app  = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// ── Backend URL — change to your Render service URL after deploying ────────
 const BACKEND_URL = "https://neurox-ai-backend.onrender.com";
 
-// ── DOM Elements ──────────────────────────────────────────────────────────
-const overlay      = document.getElementById("auth-overlay");
-const profileBtn   = document.getElementById("profileBtn");
-const dropdown     = document.getElementById("profileDropdown");
-const userEmailEl  = document.getElementById("userEmail");
-const logoutBtn    = document.getElementById("logoutBtn");
-const loginBtn     = document.getElementById("loginBtn");
-const chatList     = document.querySelector(".chat-list");
-const textarea     = document.querySelector("textarea");
-const sendBtn      = document.getElementById("send-btn");
-const themeBtn     = document.getElementById("theme-btn");
-const deleteBtn    = document.getElementById("delete-btn");
-const suggestions  = document.querySelectorAll(".suggestions button");
-const fileInput    = document.getElementById("file-input");
-const fileBtn      = document.getElementById("file-btn");
-const micBtn       = document.getElementById("mic-btn");
-const fullscreenBtn = document.getElementById("fullscreen-btn");
-const container    = document.querySelector(".container");
+const $ = (selector) => document.querySelector(selector);
+const profileBtn = $("#profileBtn");
+const dropdown = $("#profileDropdown");
+const userEmailEl = $("#userEmail");
+const logoutBtn = $("#logoutBtn");
+const loginBtn = $("#loginBtn");
+const chatList = $(".chat-list");
+const textarea = $("textarea");
+const sendBtn = $("#send-btn");
+const themeBtn = $("#theme-btn");
+const deleteBtn = $("#delete-btn");
+const suggestions = document.querySelectorAll(".suggestions button");
+const fileInput = $("#file-input");
+const fileBtn = $("#file-btn");
+const micBtn = $("#mic-btn");
+const fullscreenBtn = $("#fullscreen-btn");
+const container = $(".container");
+let isProcessing = false;
+let chatHistory = [];
 
-// ── Auth State ────────────────────────────────────────────────────────────
+try {
+  const stored = JSON.parse(localStorage.getItem("chat-history") || "[]");
+  chatHistory = Array.isArray(stored) ? stored.slice(-100) : [];
+} catch { chatHistory = []; }
+
 onAuthStateChanged(auth, (user) => {
   if (user) {
-    overlay?.classList.add("hidden");
-    if (userEmailEl)  userEmailEl.textContent = user.email;
-    if (profileBtn && user.email)
-      profileBtn.textContent = user.email.charAt(0).toUpperCase();
+    if (userEmailEl) userEmailEl.textContent = user.email || "";
+    if (profileBtn) {
+      profileBtn.textContent = (user.email || "U").charAt(0).toUpperCase();
+      profileBtn.style.display = "flex";
+    }
     if (loginBtn) loginBtn.style.display = "none";
   } else {
-    overlay?.classList.remove("hidden");
-    if (loginBtn) loginBtn.style.display = "inline-block";
+    if (profileBtn) profileBtn.style.display = "none";
+    if (loginBtn) loginBtn.style.display = "inline-flex";
   }
 });
 
-// ── Profile dropdown ──────────────────────────────────────────────────────
-profileBtn?.addEventListener("click", (e) => {
-  e.stopPropagation();
+profileBtn?.addEventListener("click", (event) => {
+  event.stopPropagation();
   dropdown?.classList.toggle("show");
 });
 window.addEventListener("click", () => dropdown?.classList.remove("show"));
-
-// ── Logout ────────────────────────────────────────────────────────────────
-logoutBtn?.addEventListener("click", () => {
-  signOut(auth)
-    .then(() => { window.location.href = "index.html"; })
-    .catch((err) => console.error("Logout Error:", err));
+logoutBtn?.addEventListener("click", async () => {
+  try { await signOut(auth); window.location.href = "index.html"; }
+  catch (error) { console.error("Logout failed:", error); }
 });
 
-// ── Chat persistence (localStorage) ──────────────────────────────────────
-let chatHistory = JSON.parse(localStorage.getItem("chat-history")) || [];
-let isProcessing = false;
-
 function saveChats() {
-  // Keep last 100 messages to avoid bloating localStorage
-  if (chatHistory.length > 100) chatHistory = chatHistory.slice(-100);
-  localStorage.setItem("chat-history", JSON.stringify(chatHistory));
+  chatHistory = chatHistory.slice(-100);
+  try { localStorage.setItem("chat-history", JSON.stringify(chatHistory)); }
+  catch (error) { console.warn("Could not save chat history:", error); }
 }
 
-// ── UI Helpers ────────────────────────────────────────────────────────────
-function getTime() {
-  return new Date().toLocaleTimeString();
+function safeMarkdown(value) {
+  const html = window.marked ? marked.parse(value) : String(value);
+  return window.DOMPurify ? DOMPurify.sanitize(html) : document.createTextNode(value).textContent;
 }
 
-function createMessage(msg, type) {
+function createMessage(message, type, provider = "") {
   const li = document.createElement("li");
-  li.classList.add("chat", type);
+  li.className = `chat ${type}`;
+  const wrapper = document.createElement("div");
+  const paragraph = document.createElement("p");
+  if (type === "incoming") paragraph.innerHTML = safeMarkdown(message);
+  else paragraph.textContent = message;
+  wrapper.appendChild(paragraph);
 
-  li.innerHTML = `
-    <div>
-      <p>${type === "incoming" ? marked.parse(msg) : msg}</p>
-      <small style="opacity:0.6;font-size:11px">${getTime()}</small>
-      ${type === "incoming" ? '<button class="copy-btn">Copy</button>' : ""}
-    </div>
-  `;
-
-  chatList.appendChild(li);
-  chatList.scrollTop = chatList.scrollHeight;
+  const meta = document.createElement("small");
+  meta.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (provider) {
+    const source = document.createElement("span");
+    source.className = "message-provider";
+    source.textContent = `· ${provider === "wikipedia" ? "Wikipedia" : provider}`;
+    meta.appendChild(source);
+  }
+  wrapper.appendChild(meta);
 
   if (type === "incoming") {
-    li.querySelector(".copy-btn").addEventListener("click", () => {
-      navigator.clipboard.writeText(msg);
+    const copy = document.createElement("button");
+    copy.className = "copy-btn";
+    copy.type = "button";
+    copy.textContent = "Copy response";
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(message);
+        copy.textContent = "Copied!";
+        setTimeout(() => { copy.textContent = "Copy response"; }, 1400);
+      } catch { copy.textContent = "Copy unavailable"; }
     });
+    wrapper.appendChild(copy);
   }
-
+  li.appendChild(wrapper);
+  chatList.appendChild(li);
+  chatList.scrollTop = chatList.scrollHeight;
   return li;
 }
 
-// Load saved chats
-chatHistory.forEach((c) => createMessage(c.text, c.type));
-
-// ── Theme toggle ──────────────────────────────────────────────────────────
-themeBtn?.addEventListener("click", () => document.body.classList.toggle("light"));
-
-// ── Delete chats ──────────────────────────────────────────────────────────
-deleteBtn?.addEventListener("click", () => {
-  if (confirm("Delete all chats?")) {
-    chatHistory = [];
-    localStorage.removeItem("chat-history");
-    chatList.innerHTML = "";
+function hideWelcome() {
+  $("#welcomePanel")?.remove();
+}
+chatHistory.forEach((item) => {
+  if (item && typeof item.text === "string" && ["incoming", "outgoing"].includes(item.type)) {
+    hideWelcome();
+    createMessage(item.text, item.type, item.provider || "");
   }
 });
 
-// ── File upload preview ───────────────────────────────────────────────────
-fileBtn?.addEventListener("click", () => fileInput.click());
+themeBtn?.addEventListener("click", () => {
+  document.body.classList.toggle("light");
+  const icon = themeBtn.querySelector("i");
+  if (icon) icon.className = document.body.classList.contains("light") ? "fa-solid fa-moon" : "fa-solid fa-sun";
+});
+deleteBtn?.addEventListener("click", () => {
+  if (!confirm("Clear this conversation from this browser?")) return;
+  chatHistory = [];
+  localStorage.removeItem("chat-history");
+  chatList.innerHTML = "";
+  chatList.appendChild(createWelcomePanel());
+});
+
+function createWelcomePanel() {
+  const item = document.createElement("li");
+  item.className = "welcome-panel";
+  item.id = "welcomePanel";
+  item.innerHTML = '<div class="welcome-orb"><img src="favicon.svg" alt=""></div><p class="eyebrow">WELCOME TO YOUR AI WORKSPACE</p><h2>Big ideas start<br><span>with one question.</span></h2><p class="welcome-copy">Explore concepts, write code, solve problems or simply think out loud. Let\'s build something brilliant.</p><div class="suggestions"><button type="button"><i class="fa-solid fa-code"></i><span><b>Code &amp; debug</b><small>Build something with me</small></span></button><button type="button"><i class="fa-regular fa-lightbulb"></i><span><b>Learn a concept</b><small>Make complex things simple</small></span></button><button type="button"><i class="fa-solid fa-pen-nib"></i><span><b>Write anything</b><small>Turn thoughts into words</small></span></button></div>';
+  item.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
+    textarea.value = button.innerText.replace(/\s+/g, " ").trim();
+    handleSend();
+  }));
+  return item;
+}
+
+fileBtn?.addEventListener("click", () => fileInput?.click());
 fileInput?.addEventListener("change", () => {
-  const file = fileInput.files[0];
+  const file = fileInput.files?.[0];
   if (!file) return;
+  if (!file.type.startsWith("image/")) return;
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Please choose an image smaller than 5 MB.");
+    fileInput.value = "";
+    return;
+  }
   const reader = new FileReader();
-  reader.onload = (e) => {
-    createMessage(`<img src="${e.target.result}" width="200">`, "outgoing");
+  reader.onload = () => {
+    const item = document.createElement("li");
+    item.className = "chat outgoing";
+    const image = document.createElement("img");
+    image.src = reader.result;
+    image.alt = "Selected attachment";
+    image.style.cssText = "max-width:220px;border-radius:12px";
+    item.appendChild(image);
+    chatList.appendChild(item);
+    chatList.scrollTop = chatList.scrollHeight;
   };
   reader.readAsDataURL(file);
 });
 
-// ── Drag & Drop ────────────────────────────────────────────────────────────
 if (container) {
-  container.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    container.classList.add("dragover");
-  });
+  container.addEventListener("dragover", (event) => { event.preventDefault(); container.classList.add("dragover"); });
   container.addEventListener("dragleave", () => container.classList.remove("dragover"));
-  container.addEventListener("drop", (e) => {
-    e.preventDefault();
+  container.addEventListener("drop", (event) => {
+    event.preventDefault();
     container.classList.remove("dragover");
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        createMessage(`<img src="${ev.target.result}" width="200">`, "outgoing");
-      };
-      reader.readAsDataURL(file);
+    const file = event.dataTransfer?.files?.[0];
+    if (file?.type.startsWith("image/") && file.size <= 5 * 1024 * 1024) {
+      fileInput.files = event.dataTransfer.files;
+      fileInput.dispatchEvent(new Event("change"));
     }
   });
 }
 
-// ── Voice Input ───────────────────────────────────────────────────────────
 if ("webkitSpeechRecognition" in window && micBtn) {
-  const recognition = new webkitSpeechRecognition();
-  recognition.lang = "en-US";
+  const recognition = new window.webkitSpeechRecognition();
+  recognition.lang = "en-IN";
+  recognition.interimResults = false;
   micBtn.addEventListener("click", () => {
-    recognition.start();
-    micBtn.classList.add("mic-active");
+    try { recognition.start(); micBtn.classList.add("mic-active"); }
+    catch (error) { console.warn("Voice input could not start:", error); }
   });
-  recognition.onresult = (e) => {
-    textarea.value = e.results[0][0].transcript;
+  recognition.onresult = (event) => {
+    textarea.value = event.results[0][0].transcript;
+    textarea.focus();
   };
+  recognition.onerror = () => micBtn.classList.remove("mic-active");
   recognition.onend = () => micBtn.classList.remove("mic-active");
+} else if (micBtn) {
+  micBtn.title = "Voice input is not supported in this browser";
+  micBtn.disabled = true;
+  micBtn.style.opacity = ".4";
 }
 
-// ── Fullscreen ────────────────────────────────────────────────────────────
-fullscreenBtn?.addEventListener("click", () => {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen?.();
-  } else {
-    document.exitFullscreen?.();
-  }
+fullscreenBtn?.addEventListener("click", async () => {
+  try {
+    if (!document.fullscreenElement) await container?.requestFullscreen?.();
+    else await document.exitFullscreen?.();
+  } catch (error) { console.warn("Fullscreen unavailable:", error); }
 });
 
-// ── Send message via backend ──────────────────────────────────────────────
 async function sendToBackend(message) {
-  const res = await fetch(`${BACKEND_URL}/api/chat`, {
+  const response = await fetch(`${BACKEND_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
-    signal: AbortSignal.timeout(35_000),
+    signal: AbortSignal.timeout(65000),
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `HTTP ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.reply;
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  if (typeof data.reply !== "string" || !data.reply.trim()) throw new Error("The AI returned an empty response.");
+  return data;
 }
 
 async function handleSend() {
   const message = textarea.value.trim();
   if (!message || isProcessing) return;
-
   isProcessing = true;
+  hideWelcome();
   createMessage(message, "outgoing");
   chatHistory.push({ text: message, type: "outgoing" });
   saveChats();
   textarea.value = "";
+  textarea.style.height = "auto";
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
 
-  const loadingEl = createMessage("⏳ Thinking...", "incoming");
-
+  const loading = createMessage("NeuroX is thinking…", "incoming");
+  loading.classList.add("is-loading");
   try {
-    const reply = await sendToBackend(message);
-    loadingEl.querySelector("p").innerHTML = marked.parse(reply);
-    chatHistory.push({ text: reply, type: "incoming" });
+    const result = await sendToBackend(message);
+    loading.remove();
+    createMessage(result.reply, "incoming", result.provider || "");
+    chatHistory.push({ text: result.reply, type: "incoming", provider: result.provider || "" });
     saveChats();
-  } catch (err) {
-    loadingEl.querySelector("p").textContent = `❌ Error: ${err.message}`;
+  } catch (error) {
+    loading.remove();
+    const retry = createMessage(`I couldn't get a response just now. ${error.message} Please try again.`, "incoming");
+    retry.classList.add("error-message");
   } finally {
     isProcessing = false;
+    sendBtn.disabled = false;
+    sendBtn.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
+    textarea.focus();
   }
 }
 
-// ── Event Listeners ───────────────────────────────────────────────────────
 sendBtn?.addEventListener("click", handleSend);
-
-textarea?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
+textarea?.addEventListener("input", () => {
+  textarea.style.height = "auto";
+  textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+});
+textarea?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
     handleSend();
   }
 });
-
-suggestions.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    textarea.value = btn.innerText;
-    handleSend();
-  });
-});
-
-// ── Footer ────────────────────────────────────────────────────────────────
-document.getElementById("year").textContent = new Date().getFullYear();
-
-function updateTime() {
-  document.getElementById("liveTime").textContent = new Date().toLocaleTimeString();
-}
-setInterval(updateTime, 1000);
-updateTime();
+suggestions.forEach((button) => button.addEventListener("click", () => {
+  textarea.value = button.innerText.replace(/\s+/g, " ").trim();
+  handleSend();
+}));
+const year = $("#year");
+if (year) year.textContent = new Date().getFullYear();
