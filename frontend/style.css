@@ -1319,3 +1319,42 @@ body.light .export-btn{background:#fff;color:#5a6680;border-color:#e1e5ef}
 .chat.incoming.is-loading p{color:#a8b5cd}
 .chat.incoming.is-loading p::after{content:"  •••";display:inline-block;color:#a99aff;letter-spacing:2px;animation:nxTypingPulse 1.05s ease-in-out infinite}
 @keyframes nxTypingPulse{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-1px)}}
+
+
+/* ===== Single, valid message surface (Markdown lives inside a DIV, not a P) ===== */
+.chat{align-items:flex-start}
+.chat .message-shell{display:flex;flex-direction:column;gap:5px;min-width:0;max-width:min(88%,850px)}
+.chat .message-content{min-width:0;max-width:100%;padding:13px 16px;border-radius:15px;font:400 13px/1.75 'DM Sans',sans-serif;overflow-wrap:anywhere}
+.chat.outgoing .message-shell{align-items:flex-end}
+.chat.outgoing .message-content{background:linear-gradient(130deg,#6659ce,#526fd0);border:1px solid rgba(190,183,255,.2);color:#fff;box-shadow:0 9px 24px rgba(39,44,105,.15);white-space:pre-wrap}
+.chat.incoming .message-shell{align-items:flex-start}
+.chat.incoming .message-content{background:rgba(18,26,42,.7);border:1px solid rgba(148,163,184,.12);color:#d9e1f1}
+.chat .message-content> :first-child{margin-top:0}
+.chat .message-content> :last-child{margin-bottom:0}
+.chat .message-content p{max-width:100%;margin:0 0 10px;padding:0;border:0;border-radius:0;background:transparent;color:inherit;box-shadow:none;font:inherit;backdrop-filter:none}
+.chat .message-content h1,.chat .message-content h2,.chat .message-content h3,.chat .message-content h4{margin:15px 0 8px;color:inherit;font-family:'Space Grotesk',sans-serif;line-height:1.3}
+.chat .message-content h1{font-size:20px}.chat .message-content h2{font-size:17px}.chat .message-content h3{font-size:14px}
+.chat .message-content ul,.chat .message-content ol{margin:7px 0 12px;padding-left:22px}
+.chat .message-content li{display:list-item;margin:3px 0;line-height:1.65}
+.chat .message-content blockquote{margin:10px 0;padding:7px 12px;border-left:3px solid #8b80f5;color:#aebbd0;background:rgba(139,128,245,.06)}
+.chat .message-content a{color:#a99aff;text-decoration:underline;text-underline-offset:2px}
+.chat .message-content table{display:block;width:100%;max-width:100%;border-collapse:collapse;overflow-x:auto;margin:12px 0;font-size:11px}
+.chat .message-content th,.chat .message-content td{padding:8px 10px;border:1px solid rgba(148,163,184,.2);text-align:left}
+.chat .message-content th{background:rgba(129,114,242,.12);color:#e7e4ff}
+.chat .message-content hr{border:0;border-top:1px solid rgba(148,163,184,.18);margin:14px 0}
+.chat .message-content code:not(pre code){padding:2px 5px;border:1px solid rgba(148,163,184,.14);border-radius:5px;background:rgba(148,163,184,.1);font:11px ui-monospace,SFMono-Regular,Consolas,monospace}
+.chat .message-content pre{max-width:100%;margin:12px 0;padding:15px 13px 13px;border:1px solid rgba(148,163,184,.18);border-radius:11px;background:#0b1120;white-space:pre;overflow:auto}
+.chat .message-content pre code{display:block;padding-top:18px;background:transparent;color:#e5eaf5;font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}
+.chat .message-content img,.chat .message-content svg{max-width:100%;height:auto}
+.chat .message-meta{display:block;margin:0 4px;color:#69768d;font:500 9px 'DM Sans',sans-serif}
+.chat .copy-btn{align-self:flex-start;margin:0 4px;padding:5px 8px;border:1px solid var(--nx-line);border-radius:7px;background:transparent;color:#8996ae;font-size:9px;cursor:pointer}
+body.light .chat.incoming .message-content{background:#fff;color:#283449;border-color:#e5e9f1}
+body.light .chat .message-content h1,body.light .chat .message-content h2,body.light .chat .message-content h3{color:#202b42}
+body.light .chat .message-content blockquote{color:#5d6a80;background:#f2f0ff}
+body.light .chat .message-content th{color:#443d82;background:#f0eeff}
+body.light .chat .message-content pre{background:#111827}
+@media(max-width:700px){
+  .chat .message-shell{max-width:94%}
+  .chat .message-content{padding:11px 12px;font-size:12px}
+  .chat .message-content pre{font-size:12px}
+}
