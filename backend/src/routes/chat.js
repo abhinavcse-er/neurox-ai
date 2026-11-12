@@ -16,7 +16,7 @@ const chatLimiter = rateLimit({
 });
 
 router.post("/", chatLimiter, async (req, res) => {
-  const { message, provider = "auto" } = req.body;
+  const { message, provider = "auto", history = [] } = req.body;
 
   if (!message || typeof message !== "string" || message.trim().length === 0) {
     return res.status(400).json({ error: "message is required" });
@@ -28,13 +28,27 @@ router.post("/", chatLimiter, async (req, res) => {
 
   const prompt = message.trim();
 
+  // Accept only a small, validated window of prior turns; never trust client roles or payloads.
+  const safeHistory = Array.isArray(history)
+    ? history.slice(-20)
+        .filter((item) => item && ["user", "assistant"].includes(item.role) && typeof item.content === "string")
+        .map((item) => ({ role: item.role, content: item.content.trim().slice(0, 4000) }))
+        .filter((item) => item.content.length > 0)
+    : [];
+  let historyChars = 0;
+  const boundedHistory = safeHistory.reverse().filter((item) => {
+    if (historyChars + item.content.length > 12000) return false;
+    historyChars += item.content.length;
+    return true;
+  }).reverse();
+
   try {
     // Wikipedia is a free knowledge fallback for direct factual lookups.
     const wikiReply = provider === "auto" ? await getWikiSummary(prompt) : null;
     if (wikiReply) return res.json({ reply: wikiReply, provider: "wikipedia" });
 
     // AI providers are attempted in configured order; failures automatically fall back.
-    const result = await getAIResponse(prompt, provider);
+    const result = await getAIResponse(prompt, provider, boundedHistory);
     return res.json(result);
   } catch (err) {
     console.error("[chat] Error:", err.message);
