@@ -78,6 +78,7 @@
     const auth = getAuth(initializeApp(firebaseConfig));
     const $ = id => document.getElementById(id);
     let mode = "login";
+    let authFlowInProgress = false;
 
     const friendlyErrors = {
       "auth/invalid-email":"Please enter a valid email address.",
@@ -118,7 +119,7 @@
       $("togglePassword").innerHTML=show?'<i class="fa-regular fa-eye-slash"></i>':'<i class="fa-regular fa-eye"></i>';
       $("togglePassword").setAttribute("aria-label",show?"Hide password":"Show password");
     });
-    onAuthStateChanged(auth,user=>{if(user)window.location.replace("index.html");});
+    onAuthStateChanged(auth,user=>{if(user&&!authFlowInProgress)window.location.replace("index.html");});
 
     $("authForm").addEventListener("submit",async event=>{
       event.preventDefault();
@@ -130,6 +131,7 @@
       if(password.length<6){showMessage("Password must be at least 6 characters.",true);return;}
       const button=$("submitBtn");
       button.disabled=true;button.textContent=mode==="register"?"Creating account…":"Signing in…";
+      authFlowInProgress=true;
       showMessage("");
       try{
         if(mode==="register"){
@@ -141,6 +143,7 @@
         showMessage("Success! Opening NeuroX AI…");
         window.location.replace("index.html");
       }catch(error){
+        authFlowInProgress=false;
         showMessage(friendlyErrors[error.code]||"Something went wrong. Please try again.",true);
         button.disabled=false;button.textContent=mode==="register"?"Create account":"Sign in";
       }
