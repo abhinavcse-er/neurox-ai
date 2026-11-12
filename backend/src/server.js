@@ -20,10 +20,13 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 // ── CORS — only allow your Netlify domain ─────────────────────────────────
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
+const ALLOWED_ORIGINS = [
+  "https://neuroaii.netlify.app",
+  ...(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+];
 
 app.use(
   cors({
