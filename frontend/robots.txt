@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /login.html
+
+Sitemap: https://neuroaii.netlify.app/sitemap.xml
