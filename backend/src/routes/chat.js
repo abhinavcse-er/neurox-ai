@@ -1,9 +1,12 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { getAIResponse } from "../services/ai.js";
+import { getAIResponse, getAvailableModels } from "../services/ai.js";
 import { getWikiSummary } from "../services/wikipedia.js";
 
 const router = Router();
+
+// Available providers are derived from configured server-side API keys.
+router.get("/models", (_req, res) => res.json({ models: getAvailableModels() }));
 
 // Tighter rate limit just for the AI endpoint — 20 req / min per IP
 const chatLimiter = rateLimit({
@@ -13,7 +16,7 @@ const chatLimiter = rateLimit({
 });
 
 router.post("/", chatLimiter, async (req, res) => {
-  const { message } = req.body;
+  const { message, provider = "auto" } = req.body;
 
   if (!message || typeof message !== "string" || message.trim().length === 0) {
     return res.status(400).json({ error: "message is required" });
@@ -27,11 +30,11 @@ router.post("/", chatLimiter, async (req, res) => {
 
   try {
     // Wikipedia is a free knowledge fallback for direct factual lookups.
-    const wikiReply = await getWikiSummary(prompt);
+    const wikiReply = provider === "auto" ? await getWikiSummary(prompt) : null;
     if (wikiReply) return res.json({ reply: wikiReply, provider: "wikipedia" });
 
     // AI providers are attempted in configured order; failures automatically fall back.
-    const result = await getAIResponse(prompt);
+    const result = await getAIResponse(prompt, provider);
     return res.json(result);
   } catch (err) {
     console.error("[chat] Error:", err.message);
