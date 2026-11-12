@@ -137,6 +137,18 @@ async function openrouter(prompt, history = [], timeoutMs, mode = "general") {
 
 const providers = { gemini, groq, openrouter };
 
+function extractGeminiStreamText(data) {
+  const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
+  const text = candidates.flatMap((candidate) => {
+    const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+    return parts.map((part) => typeof part?.text === "string" ? part.text : "");
+  }).join("");
+  if (text) return text;
+  const reason = data?.promptFeedback?.blockReason;
+  if (reason) throw new Error(`Gemini blocked the prompt (${reason})`);
+  return "";
+}
+
 function extractOpenAIStreamText(data) {
   const value = data?.choices?.[0]?.delta?.content ?? data?.choices?.[0]?.text ?? "";
   if (typeof value === "string") return value;
@@ -209,7 +221,7 @@ async function streamGemini(prompt, history = [], timeoutMs, mode = "general", o
       signal: AbortSignal.timeout(timeoutMs),
     }
   );
-  return consumeSse(response, "Gemini", extractGeminiText, onToken);
+  return consumeSse(response, "Gemini", extractGeminiStreamText, onToken);
 }
 async function streamGroq(prompt, history = [], timeoutMs, mode = "general", onToken = () => {}) {
   const key = process.env.GROQ_API_KEY;
@@ -310,7 +322,7 @@ export async function streamAIResponse(prompt, requestedProvider = "auto", histo
     ? [selected, ...order.filter((name) => name !== selected)]
     : order;
   const totalBudgetMs = Math.max(12_000, Math.min(Number(process.env.AI_STREAM_TOTAL_TIMEOUT_MS) || 55_000, 60_000));
-  const perProviderMs = Math.max(8_000, Math.min(Number(process.env.AI_STREAM_PROVIDER_TIMEOUT_MS) || 28_000, 45_000));
+  const perProviderMs = Math.max(8_000, Math.min(Number(process.env.AI_STREAM_PROVIDER_TIMEOUT_MS) || 18_000, 22_000));
   const deadline = Date.now() + totalBudgetMs;
   const errors = [];
 
