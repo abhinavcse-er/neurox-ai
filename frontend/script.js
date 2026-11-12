@@ -135,6 +135,13 @@ function normalizeChartConfig(candidate) {
 
 function normalizeToolChartText(value) {
   const text = String(value);
+  // Worst-case fallback: the model may return raw JSON instead of a fenced code block.
+  const plainJson = text.trim().replace(/^\`\`\`(?:json|chart)?\s*/i, "").replace(/\s*\`\`\`$/, "");
+  try {
+    const normalized = normalizeChartConfig(JSON.parse(plainJson));
+    if (normalized) return "```chart\n" + JSON.stringify(normalized) + "\n```";
+  } catch {}
+
   const markerStart = text.indexOf("<|tool_call_start|>");
   const markerEnd = text.indexOf("<|tool_call_end|>", markerStart);
   if (markerStart < 0 || markerEnd < 0) return text;
