@@ -29,9 +29,11 @@ const suggestions = document.querySelectorAll(".suggestions button");
 const fileInput = $("#file-input");
 const fileBtn = $("#file-btn");
 const micBtn = $("#mic-btn");
+const modelSelect = $("#model-select");
 const container = $(".main-wrapper");
 let isProcessing = false;
 let chatHistory = [];
+let chartInstances = [];
 
 try {
   const stored = JSON.parse(localStorage.getItem("chat-history") || "[]");
@@ -69,16 +71,87 @@ function saveChats() {
 }
 
 function safeMarkdown(value) {
-  const html = window.marked ? marked.parse(value) : String(value);
+  const html = window.marked ? marked.parse(value, { gfm: true, breaks: false }) : String(value);
   return window.DOMPurify ? DOMPurify.sanitize(html) : document.createTextNode(value).textContent;
 }
+
+function enhanceRichOutput(root) {
+  root.querySelectorAll("pre > code").forEach((code) => {
+    const pre = code.parentElement;
+    const language = (code.className.match(/language-([\\w+-]+)/) || [])[1] || "text";
+    pre.dataset.language = language;
+    if (["bash","sh","shell","powershell","ps1","console","terminal","cmd"].includes(language.toLowerCase())) pre.classList.add("terminal-code");
+    if (language === "chart") {
+      try {
+        const config = JSON.parse(code.textContent);
+        const allowed = ["bar","line","pie","doughnut"];
+        if (!allowed.includes(config.type) || !Array.isArray(config.labels) || !Array.isArray(config.datasets)) throw new Error("Use type, labels and datasets.");
+        const card = document.createElement("div");
+        card.className = "chart-card";
+        if (config.title) { const heading = document.createElement("strong"); heading.textContent = config.title; card.appendChild(heading); }
+        const canvas = document.createElement("canvas");
+        canvas.setAttribute("role","img");
+        canvas.setAttribute("aria-label",config.title || "AI generated chart");
+        card.appendChild(canvas);
+        pre.replaceWith(card);
+        if (window.Chart) chartInstances.push(new Chart(canvas, {
+          type: config.type,
+          data: { labels: config.labels, datasets: config.datasets },
+          options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: document.body.classList.contains("light") ? "#26334b" : "#dce5f5" } } }, scales: ["pie","doughnut"].includes(config.type) ? {} : { x: { ticks: { color: "#9ba8bd" } }, y: { beginAtZero: true, ticks: { color: "#9ba8bd" } } } }
+        }));
+      } catch (error) {
+        const warning = document.createElement("div");
+        warning.className = "chart-error";
+        warning.textContent = "Chart format error: " + error.message;
+        pre.replaceWith(warning);
+      }
+      return;
+    }
+    if (window.hljs && !code.dataset.highlighted) window.hljs.highlightElement(code);
+    const copy = document.createElement("button");
+    copy.className = "code-copy";
+    copy.type = "button";
+    copy.textContent = "Copy";
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(code.textContent); copy.textContent = "Copied"; }
+      catch { copy.textContent = "Unavailable"; }
+      setTimeout(() => { copy.textContent = "Copy"; }, 1300);
+    });
+    pre.appendChild(copy);
+  });
+}
+
+async function loadModels() {
+  if (!modelSelect) return;
+  try {
+    const response = await fetch("/api/chat/models");
+    if (!response.ok) throw new Error("Model list unavailable");
+    const data = await response.json();
+    modelSelect.innerHTML = "";
+    (data.models || [{id:"auto",label:"Auto (recommended)"}]).forEach((model) => {
+      const option = document.createElement("option");
+      option.value = model.id;
+      option.textContent = model.label;
+      modelSelect.appendChild(option);
+    });
+    const saved = localStorage.getItem("neurox-model") || "auto";
+    modelSelect.value = [...modelSelect.options].some((option) => option.value === saved) ? saved : "auto";
+  } catch (error) {
+    console.warn("Could not load model list:", error);
+    modelSelect.innerHTML = '<option value="auto">Auto (recommended)</option>';
+  }
+}
+loadModels();
+modelSelect?.addEventListener("change", () => {
+  try { localStorage.setItem("neurox-model", modelSelect.value); } catch {}
+});
 
 function createMessage(message, type, provider = "") {
   const li = document.createElement("li");
   li.className = `chat ${type}`;
   const wrapper = document.createElement("div");
   const paragraph = document.createElement("p");
-  if (type === "incoming") paragraph.innerHTML = safeMarkdown(message);
+  if (type === "incoming") { paragraph.innerHTML = safeMarkdown(message); enhanceRichOutput(paragraph); }
   else paragraph.textContent = message;
   wrapper.appendChild(paragraph);
 
@@ -218,7 +291,7 @@ async function sendToBackend(message) {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, provider: modelSelect?.value || "auto" }),
     signal: AbortSignal.timeout(65000),
   });
   const data = await response.json().catch(() => ({}));
