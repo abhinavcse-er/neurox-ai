@@ -4,7 +4,7 @@ import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/fi
 
 const firebaseConfig = {
   apiKey: "AIzaSyBfLn_JxmovMapRqby9RrdceaOc0Mmeo6Y",
-  authDomain: "eurox-ai-2cd91.firebaseapp.com",
+  authDomain: "neurox-ai-2cd91.firebaseapp.com",
   projectId: "neurox-ai-2cd91",
   storageBucket: "neurox-ai-2cd91.appspot.com",
   messagingSenderId: "242667828902",
@@ -30,7 +30,6 @@ const suggestions = document.querySelectorAll(".suggestions button");
 const fileInput = $("#file-input");
 const fileBtn = $("#file-btn");
 const micBtn = $("#mic-btn");
-const fullscreenBtn = $("#fullscreen-btn");
 const container = $(".container");
 let isProcessing = false;
 let chatHistory = [];
@@ -215,13 +214,6 @@ if ("webkitSpeechRecognition" in window && micBtn) {
   micBtn.disabled = true;
   micBtn.style.opacity = ".4";
 }
-
-fullscreenBtn?.addEventListener("click", async () => {
-  try {
-    if (!document.fullscreenElement) await container?.requestFullscreen?.();
-    else await document.exitFullscreen?.();
-  } catch (error) { console.warn("Fullscreen unavailable:", error); }
-});
 
 async function sendToBackend(message) {
   const response = await fetch(`${BACKEND_URL}/api/chat`, {
