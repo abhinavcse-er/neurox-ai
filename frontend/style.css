@@ -958,3 +958,9 @@ body.light #model-select{background:#fff;color:#182033}
 
 .chat.incoming p .mermaid{max-width:100%;overflow-x:auto;margin:12px 0;padding:12px;border:1px solid var(--nx-line);border-radius:11px;background:rgba(7,12,24,.55)}
 .chat.incoming p .mermaid svg{max-width:100%;height:auto}
+
+/* Chart canvas must have a real height; otherwise Chart.js can render an empty box. */
+.chat.incoming p .chart-card{width:100%;min-height:310px;height:330px;box-sizing:border-box;position:relative;overflow:hidden}
+.chat.incoming p .chart-card strong{display:block;margin:0 0 10px;color:var(--nx-text);font-size:13px}
+.chat.incoming p .chart-card canvas{display:block!important;width:100%!important;height:270px!important;max-height:none!important}
+body.light .chat.incoming p .chart-card{background:#fff}
