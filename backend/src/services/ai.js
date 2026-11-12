@@ -70,7 +70,7 @@ async function gemini(prompt, history = [], timeoutMs) {
 async function groq(prompt, history = [], timeoutMs) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("Groq key not configured");
-  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
   const data = await postJson(
     "https://api.groq.com/openai/v1/chat/completions",
     { Authorization: `Bearer ${key}` },
@@ -110,7 +110,7 @@ const providers = { gemini, groq, openrouter };
 export function getAvailableModels() {
   const configs = [
     { id: "gemini", label: "Gemini 2.5 Flash", model: process.env.GEMINI_MODEL || "gemini-2.5-flash", key: "GEMINI_API_KEY" },
-    { id: "groq", label: "Groq · Llama 3.3 70B", model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile", key: "GROQ_API_KEY" },
+    { id: "groq", label: "Groq · Llama 3.3 70B", model: process.env.GROQ_MODEL || "openai/gpt-oss-120b", key: "GROQ_API_KEY" },
     { id: "openrouter", label: "OpenRouter · Free", model: process.env.OPENROUTER_MODEL || "openrouter/free", key: "OPENROUTER_API_KEY" },
   ];
   return [{ id: "auto", label: "Auto (recommended)" }, ...configs.filter((item) => process.env[item.key])];
