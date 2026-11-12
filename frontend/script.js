@@ -78,9 +78,61 @@ function safeMarkdown(value) {
 function enhanceRichOutput(root) {
   root.querySelectorAll("pre > code").forEach((code) => {
     const pre = code.parentElement;
-    const language = (code.className.match(/language-([\w+-]+)/) || [])[1] || "text";
+    const match = code.className.match(/language-([\\w+-]+)/);
+    const language = (match && match[1] ? match[1] : "text").toLowerCase();
     pre.dataset.language = language;
-    if (["bash","sh","shell","powershell","ps1","console","terminal","cmd"].includes(language.toLowerCase())) pre.classList.add("terminal-code");
+
+    // Recognize chart JSON even when the model labels the block as json instead of chart.
+    let chartConfig = null;
+    if (language === "chart" || language === "json") {
+      try {
+        const candidate = JSON.parse(code.textContent.trim());
+        if (["bar", "line", "pie", "doughnut"].includes(candidate.type) &&
+            Array.isArray(candidate.labels) && Array.isArray(candidate.datasets)) chartConfig = candidate;
+      } catch {}
+    }
+
+    if (chartConfig) {
+      const card = document.createElement("div");
+      card.className = "chart-card";
+      if (chartConfig.title) {
+        const heading = document.createElement("strong");
+        heading.textContent = chartConfig.title;
+        card.appendChild(heading);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.setAttribute("role", "img");
+      canvas.setAttribute("aria-label", chartConfig.title || "AI generated chart");
+      card.appendChild(canvas);
+      pre.replaceWith(card);
+
+      if (window.Chart) {
+        try {
+          chartInstances.push(new Chart(canvas, {
+            type: chartConfig.type,
+            data: { labels: chartConfig.labels, datasets: chartConfig.datasets },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 250 },
+              plugins: { legend: { display: true, labels: { color: document.body.classList.contains("light") ? "#26334b" : "#dce5f5" } } },
+              scales: ["pie", "doughnut"].includes(chartConfig.type) ? {} : {
+                x: { ticks: { color: "#9ba8bd" }, grid: { color: "rgba(148,163,184,.12)" } },
+                y: { beginAtZero: true, ticks: { color: "#9ba8bd" }, grid: { color: "rgba(148,163,184,.12)" } }
+              }
+            }
+          }));
+        } catch (error) {
+          card.textContent = "Chart could not be rendered: " + error.message;
+        }
+      } else {
+        card.textContent = "Chart library did not load. Please refresh the page.";
+      }
+      return;
+    }
+
+    if (["bash", "sh", "shell", "powershell", "ps1", "console", "terminal", "cmd"].includes(language)) pre.classList.add("terminal-code");
+
     if (language === "mermaid") {
       const diagram = document.createElement("div");
       diagram.className = "mermaid";
@@ -92,33 +144,12 @@ function enhanceRichOutput(root) {
       }
       return;
     }
-    if (language === "chart") {
-      try {
-        const config = JSON.parse(code.textContent);
-        const allowed = ["bar","line","pie","doughnut"];
-        if (!allowed.includes(config.type) || !Array.isArray(config.labels) || !Array.isArray(config.datasets)) throw new Error("Use type, labels and datasets.");
-        const card = document.createElement("div");
-        card.className = "chart-card";
-        if (config.title) { const heading = document.createElement("strong"); heading.textContent = config.title; card.appendChild(heading); }
-        const canvas = document.createElement("canvas");
-        canvas.setAttribute("role","img");
-        canvas.setAttribute("aria-label",config.title || "AI generated chart");
-        card.appendChild(canvas);
-        pre.replaceWith(card);
-        if (window.Chart) chartInstances.push(new Chart(canvas, {
-          type: config.type,
-          data: { labels: config.labels, datasets: config.datasets },
-          options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: document.body.classList.contains("light") ? "#26334b" : "#dce5f5" } } }, scales: ["pie","doughnut"].includes(config.type) ? {} : { x: { ticks: { color: "#9ba8bd" } }, y: { beginAtZero: true, ticks: { color: "#9ba8bd" } } } }
-        }));
-      } catch (error) {
-        const warning = document.createElement("div");
-        warning.className = "chart-error";
-        warning.textContent = "Chart format error: " + error.message;
-        pre.replaceWith(warning);
-      }
-      return;
+
+    if (window.hljs && !code.dataset.highlighted) {
+      const highlightLanguage = language === "ps1" ? "powershell" : language;
+      if (window.hljs.getLanguage(highlightLanguage)) window.hljs.highlightElement(code);
+      else code.classList.add("no-highlight");
     }
-    if (window.hljs && !code.dataset.highlighted) window.hljs.highlightElement(code);
     const copy = document.createElement("button");
     copy.className = "code-copy";
     copy.type = "button";
@@ -131,7 +162,6 @@ function enhanceRichOutput(root) {
     pre.appendChild(copy);
   });
 }
-
 async function loadModels() {
   if (!modelSelect) return;
   try {
