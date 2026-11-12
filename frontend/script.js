@@ -450,7 +450,7 @@ async function sendToBackend(message) {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, provider: modelSelect?.value || "auto" }),
+    body: JSON.stringify({ message, provider: modelSelect?.value || "auto", history: chatHistory.slice(0, -1).filter((item) => item && typeof item.text === "string" && ["incoming", "outgoing"].includes(item.type)).slice(-20).map((item) => ({ role: item.type === "outgoing" ? "user" : "assistant", content: item.text.slice(0, 4000) })) }),
     signal: AbortSignal.timeout(65000),
   });
   const data = await response.json().catch(() => ({}));
