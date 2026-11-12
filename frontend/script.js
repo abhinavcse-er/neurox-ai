@@ -140,6 +140,8 @@ function renderHistory() {
 }
 function renderActiveConversation() {
   if (!chatList) return;
+  chartInstances.forEach((instance) => { try { instance.destroy(); } catch {} });
+  chartInstances = [];
   const conversation = activeConversation();
   chatHistory = Array.isArray(conversation?.messages) ? conversation.messages.slice(-100) : [];
   if (modeSelect) modeSelect.value = ["general", "coding", "study", "cybersecurity"].includes(conversation?.mode) ? conversation.mode : "general";
@@ -671,6 +673,7 @@ async function handleSend() {
   const message = textarea.value.trim();
   if (!message || isProcessing) return;
   isProcessing = true;
+  const requestConversationId = activeConversationId;
   hideWelcome();
   createMessage(message, "outgoing");
   chatHistory.push({ text: message, type: "outgoing", mode: modeSelect?.value || "general" });
@@ -690,22 +693,54 @@ async function handleSend() {
   try {
     const result = await streamFromBackend(message, (token) => {
       streamedText += token;
-      if (loadingParagraph) loadingParagraph.textContent = streamedText;
-      chatList.scrollTop = chatList.scrollHeight;
+      if (activeConversationId === requestConversationId && loadingParagraph?.isConnected) {
+        loadingParagraph.textContent = streamedText;
+        chatList.scrollTop = chatList.scrollHeight;
+      }
     });
     loading.remove();
-    createMessage(result.reply, "incoming", result.provider || "");
-    chatHistory.push({ text: result.reply, type: "incoming", provider: result.provider || "", mode: selectedMode });
-    saveChats();
+    const assistantMessage = {
+      text: result.reply,
+      type: "incoming",
+      provider: result.provider || "",
+      mode: selectedMode
+    };
+    const targetConversation = conversations.find((item) => item.id === requestConversationId);
+    if (targetConversation) {
+      targetConversation.messages = [...(targetConversation.messages || []), assistantMessage].slice(-100);
+      targetConversation.updatedAt = Date.now();
+      conversations = [targetConversation, ...conversations.filter((item) => item.id !== requestConversationId)];
+    }
+    if (activeConversationId === requestConversationId) {
+      chatHistory.push(assistantMessage);
+      createMessage(result.reply, "incoming", result.provider || "");
+      saveChats();
+    } else {
+      persistConversations();
+      renderHistory();
+    }
   } catch (error) {
     loading.remove();
-    if (streamedText.trim()) {
-      createMessage(streamedText, "incoming");
-      chatHistory.push({ text: streamedText, type: "incoming", mode: selectedMode, partial: true });
-      saveChats();
+    const targetConversation = conversations.find((item) => item.id === requestConversationId);
+    if (streamedText.trim() && targetConversation) {
+      const partialMessage = { text: streamedText, type: "incoming", mode: selectedMode, partial: true };
+      targetConversation.messages = [...(targetConversation.messages || []), partialMessage].slice(-100);
+      targetConversation.updatedAt = Date.now();
     }
-    const failure = createMessage(`I couldn't complete the response. ${error.message} Please retry or switch the provider.`, "incoming");
-    failure.classList.add("error-message");
+    if (activeConversationId === requestConversationId) {
+      if (streamedText.trim()) {
+        chatHistory.push({ text: streamedText, type: "incoming", mode: selectedMode, partial: true });
+        createMessage(streamedText, "incoming");
+        saveChats();
+      } else if (targetConversation) {
+        persistConversations();
+      }
+      const failure = createMessage(`I couldn't complete the response. ${error.message} Please retry or switch the provider.`, "incoming");
+      failure.classList.add("error-message");
+    } else {
+      persistConversations();
+      renderHistory();
+    }
   } finally {
     isProcessing = false;
     sendBtn.disabled = false;
