@@ -1,125 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeuroX AI | Abhinav Kumar</title>
-
-  <!-- Icons -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090d18">
+  <meta name="description" content="NeuroX AI — a smarter workspace for learning, creating and solving problems.">
+  <title>NeuroX AI — Think beyond limits</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-  <!-- Highlight.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-
-  <!-- Marked (Markdown parser) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- Main CSS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-  <!-- Background Particles -->
-  <div id="particles-js"></div>
-
-  <!-- Top Bar -->
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
   <header class="top-bar">
-    <div class="logo">NeuroX AI</div>
-
-    <div class="profile-area">
-      <button class="login-btn" id="loginBtn" onclick="window.location.href='login.html'">
-        Click here to Login
-      </button>
-
-      <div class="profile-circle" id="profileBtn">U</div>
-      <div class="profile-dropdown" id="profileDropdown">
-        <p id="userEmail"></p>
-        <button id="logoutBtn">Logout</button>
-      </div>
+    <a class="brand" href="index.html" aria-label="NeuroX AI home">
+      <img src="favicon.svg" alt="" class="brand-mark">
+      <span>NeuroX<span class="brand-accent">AI</span><small>INTELLIGENCE, REIMAGINED</small></span>
+    </a>
+    <div class="top-actions">
+      <span class="status-pill"><i></i> Systems ready</span>
+      <button class="login-btn" id="loginBtn" onclick="window.location.href='login.html'"><i class="fa-regular fa-user"></i> Sign in</button>
+      <button class="profile-circle" id="profileBtn" aria-label="Open profile menu">U</button>
+      <div class="profile-dropdown" id="profileDropdown"><p id="userEmail"></p><button id="logoutBtn">Sign out</button></div>
     </div>
   </header>
 
-  <!-- MAIN WRAPPER -->
-  <div class="main-wrapper">
-    <div class="container glass">
-
-      <!-- Chat Header -->
+  <main class="main-wrapper">
+    <section class="container">
       <header class="chat-header">
-        <div class="logo">
-          <span class="material-icons bot-icon">smart_toy</span>
-          <h2>NeuroX AI</h2>
-          <span class="model-badge">Gemini 2.5 Flash</span>
+        <div class="chat-heading">
+          <div class="assistant-avatar"><img src="favicon.svg" alt="NeuroX AI"></div>
+          <div><h1>NeuroX AI</h1><p>Your thinking partner <span class="model-badge">AUTO MODEL</span></p></div>
         </div>
-
         <div class="buttons">
-          <span class="material-icons icon-btn" id="fullscreen-btn">fullscreen</span>
-          <span class="material-icons icon-btn" id="theme-btn">dark_mode</span>
-          <span class="material-icons icon-btn" id="delete-btn">delete</span>
+          <button class="icon-btn" id="fullscreen-btn" aria-label="Toggle fullscreen" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+          <button class="icon-btn" id="theme-btn" aria-label="Toggle theme" title="Toggle theme"><i class="fa-solid fa-sun"></i></button>
+          <button class="icon-btn" id="delete-btn" aria-label="Clear conversation" title="Clear chat"><i class="fa-regular fa-trash-can"></i></button>
         </div>
       </header>
 
-      <!-- Chat Messages -->
-      <ul class="chat-list"></ul>
+      <ul class="chat-list" aria-live="polite" aria-label="Conversation">
+        <li class="welcome-panel" id="welcomePanel">
+          <div class="welcome-orb"><img src="favicon.svg" alt=""></div>
+          <p class="eyebrow">WELCOME TO YOUR AI WORKSPACE</p>
+          <h2>Big ideas start<br><span>with one question.</span></h2>
+          <p class="welcome-copy">Explore concepts, write code, solve problems or simply think out loud. Let's build something brilliant.</p>
+          <div class="suggestions">
+            <button type="button"><i class="fa-solid fa-code"></i><span><b>Code & debug</b><small>Build something with me</small></span></button>
+            <button type="button"><i class="fa-regular fa-lightbulb"></i><span><b>Learn a concept</b><small>Make complex things simple</small></span></button>
+            <button type="button"><i class="fa-solid fa-pen-nib"></i><span><b>Write anything</b><small>Turn thoughts into words</small></span></button>
+          </div>
+        </li>
+      </ul>
 
-      <!-- Suggestions -->
-      <div class="suggestions">
-        <button>Explain JavaScript</button>
-        <button>Write Python code</button>
-        <button>Best engineering colleges in India</button>
+      <div class="composer-wrap">
+        <div class="input-area">
+          <input type="file" id="file-input" hidden accept="image/*">
+          <button id="file-btn" class="file-btn" aria-label="Attach an image" title="Attach image"><i class="fa-solid fa-paperclip"></i></button>
+          <textarea rows="1" placeholder="Message NeuroX AI..." aria-label="Message NeuroX AI"></textarea>
+          <button id="mic-btn" class="file-btn" aria-label="Voice input" title="Voice input"><i class="fa-solid fa-microphone"></i></button>
+          <button id="send-btn" class="send-btn" aria-label="Send message" title="Send message"><i class="fa-solid fa-arrow-up"></i></button>
+        </div>
+        <div class="composer-meta"><span><i class="fa-solid fa-shield-halved"></i> Your conversations stay in your browser</span><span>Enter to send · Shift + Enter for new line</span></div>
       </div>
+    </section>
+  </main>
 
-      <!-- Input Area -->
-      <div class="input-area glass-light">
-        <input type="file" id="file-input" hidden accept="image/*">
-
-        <button id="file-btn" class="file-btn">
-          <span class="material-icons">attach_file</span>
-        </button>
-
-        <button id="mic-btn" class="file-btn">
-          <span class="material-icons">mic</span>
-        </button>
-
-        <textarea placeholder="Type your message..."></textarea>
-
-        <button id="send-btn" class="send-btn">
-          <span class="material-icons">send</span>
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Sticky Footer -->
-  <footer class="footer">
-    <div class="footer-content">
-
-      <div class="footer-left">
-        © <span id="year"></span> Abhinav Kumar. All Rights Reserved.
-      </div>
-
-      <div class="footer-center">
-        <span id="liveTime"></span>
-      </div>
-
-      <div class="footer-right">
-        <a href="https://github.com/abhinavcse-er" target="_blank">
-          <i class="fab fa-github"></i> abhinavcse-er
-        </a>
-      </div>
-
-    </div>
-  </footer>
-
-  <!-- Scripts -->
+  <footer class="footer"><span>© <span id="year"></span> NeuroX AI</span><span>Crafted with curiosity by <a href="https://github.com/abhinavcse-er" target="_blank" rel="noopener noreferrer">Abhinav Kumar <i class="fa-brands fa-github"></i></a></span></footer>
   <script type="module" src="script.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
-
 </body>
-
 </html>
