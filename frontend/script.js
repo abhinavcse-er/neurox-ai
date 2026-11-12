@@ -78,9 +78,20 @@ function safeMarkdown(value) {
 function enhanceRichOutput(root) {
   root.querySelectorAll("pre > code").forEach((code) => {
     const pre = code.parentElement;
-    const language = (code.className.match(/language-([\\w+-]+)/) || [])[1] || "text";
+    const language = (code.className.match(/language-([\w+-]+)/) || [])[1] || "text";
     pre.dataset.language = language;
     if (["bash","sh","shell","powershell","ps1","console","terminal","cmd"].includes(language.toLowerCase())) pre.classList.add("terminal-code");
+    if (language === "mermaid") {
+      const diagram = document.createElement("div");
+      diagram.className = "mermaid";
+      diagram.textContent = code.textContent;
+      pre.replaceWith(diagram);
+      if (window.mermaid) {
+        window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: document.body.classList.contains("light") ? "default" : "dark" });
+        window.mermaid.run({ nodes: [diagram] }).catch((error) => console.warn("Diagram render failed:", error));
+      }
+      return;
+    }
     if (language === "chart") {
       try {
         const config = JSON.parse(code.textContent);
