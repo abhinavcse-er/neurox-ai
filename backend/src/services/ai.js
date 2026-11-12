@@ -16,6 +16,18 @@ Supported chart types: bar, line, pie, doughnut. Do not invent data; if values a
 - Use Mermaid fenced blocks only when a flowchart or sequence diagram is useful.
 - Never wrap ordinary prose in code blocks. Do not output raw HTML.`;
 
+const MODE_INSTRUCTIONS = {
+  general: "Mode: General Assistant. Be accurate, practical and clear. Match the user's level and preferred format.",
+  coding: "Mode: Coding Assistant. Help design, debug and explain software. Prefer secure, maintainable code, state assumptions, handle edge cases and give runnable examples. Do not silently change unrelated code.",
+  study: "Mode: Study Assistant. Teach from fundamentals in simple language, define terms before using them, explain why and how, use step-by-step examples, and finish with concise revision points when useful.",
+  cybersecurity: "Mode: Cybersecurity Assistant. Prioritize defensive security, secure configuration, threat analysis, detection, incident response and authorized lab learning. Keep potentially dual-use guidance scoped to systems the user owns or is authorized to test."
+};
+function getSystemInstruction(mode = "general") {
+  const key = Object.hasOwn(MODE_INSTRUCTIONS, String(mode).toLowerCase()) ? String(mode).toLowerCase() : "general";
+  return RESPONSE_FORMAT_INSTRUCTIONS + "\n\n" + MODE_INSTRUCTIONS[key];
+}
+
+
 /**
  * Convert serialized chart tool calls from some models into the Markdown
  * chart JSON block consumed by the frontend renderer.
@@ -44,64 +56,185 @@ async function postJson(url, headers, body, provider, timeoutMs) {
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(timeoutMs),
   });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`${provider} API ${response.status}: ${detail.slice(0, 180)}`);
+  const raw = await response.text();
+  let data;
+  try { data = raw ? JSON.parse(raw) : {}; }
+  catch {
+    if (!response.ok) throw new Error(`${provider} API ${response.status}: ${raw.slice(0, 240)}`);
+    throw new Error(`${provider} returned malformed JSON`);
   }
-  return response.json();
+  if (!response.ok) {
+    const detail = data?.error?.message || data?.message || raw.slice(0, 240) || "Unknown provider error";
+    throw new Error(`${provider} API ${response.status}: ${String(detail).slice(0, 240)}`);
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error(`${provider} returned an unexpected response format`);
+  if (data.error) throw new Error(`${provider}: ${data.error.message || "Provider returned an error"}`);
+  return data;
 }
 
-async function gemini(prompt, history = [], timeoutMs) {
+function extractGeminiText(data) {
+  const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
+  const text = candidates.flatMap((candidate) => {
+    const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+    return parts.map((part) => typeof part?.text === "string" ? part.text : "");
+  }).join("").trim();
+  if (text) return text;
+  const blockReason = data?.promptFeedback?.blockReason;
+  if (blockReason) throw new Error(`Gemini blocked the prompt (${blockReason})`);
+  const finishReason = candidates.find((candidate) => candidate?.finishReason)?.finishReason;
+  if (finishReason) throw new Error(`Gemini returned no text (finish reason: ${finishReason})`);
+  throw new Error("Gemini returned an empty or malformed response");
+}
+
+async function gemini(prompt, history = [], timeoutMs, mode = "general") {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("Gemini key not configured");
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const data = await postJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {},
-    { systemInstruction: { parts: [{ text: RESPONSE_FORMAT_INSTRUCTIONS }] }, contents: [...history.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] })), { role: "user", parts: [{ text: prompt }] }] },
+    {
+      systemInstruction: { parts: [{ text: getSystemInstruction(mode) }] },
+      contents: [
+        ...history.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] })),
+        { role: "user", parts: [{ text: prompt }] }
+      ]
+    },
     "Gemini", timeoutMs
   );
-  const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim();
-  if (!text) throw new Error("Gemini returned an empty response");
-  return text;
+  return extractGeminiText(data);
 }
 
-async function groq(prompt, history = [], timeoutMs) {
+async function groq(prompt, history = [], timeoutMs, mode = "general") {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("Groq key not configured");
   const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
   const data = await postJson(
     "https://api.groq.com/openai/v1/chat/completions",
     { Authorization: `Bearer ${key}` },
-    { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
+    { model, messages: [{ role: "system", content: getSystemInstruction(mode) }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
     "Groq", timeoutMs
   );
-  const text = data.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("Groq returned an empty response");
-  return text;
+  const text = data.choices?.[0]?.message?.content;
+  if (typeof text !== "string" || !text.trim()) throw new Error("Groq returned an empty or malformed response");
+  return text.trim();
 }
 
-async function openrouter(prompt, history = [], timeoutMs) {
+async function openrouter(prompt, history = [], timeoutMs, mode = "general") {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new Error("OpenRouter key not configured");
   const model = process.env.OPENROUTER_MODEL || "openrouter/free";
   const data = await postJson(
     "https://openrouter.ai/api/v1/chat/completions",
-    {
-      Authorization: `Bearer ${key}`,
-      "HTTP-Referer": process.env.APP_URL || "https://neuroaii.netlify.app",
-      "X-Title": "NeuroX AI",
-    },
-    { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
+    { Authorization: `Bearer ${key}`, "HTTP-Referer": process.env.APP_URL || "https://neuroaii.netlify.app", "X-Title": "NeuroX AI" },
+    { model, messages: [{ role: "system", content: getSystemInstruction(mode) }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
     "OpenRouter", timeoutMs
   );
-  const text = data.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("OpenRouter returned an empty response");
-  return text;
+  const text = data.choices?.[0]?.message?.content;
+  if (typeof text !== "string" || !text.trim()) throw new Error("OpenRouter returned an empty or malformed response");
+  return text.trim();
 }
 
 const providers = { gemini, groq, openrouter };
+
+function extractOpenAIStreamText(data) {
+  const value = data?.choices?.[0]?.delta?.content ?? data?.choices?.[0]?.text ?? "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map((part) => typeof part?.text === "string" ? part.text : "").join("");
+  return "";
+}
+async function consumeSse(response, provider, extractText, onToken) {
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    let message = detail;
+    try { const parsed = JSON.parse(detail); message = parsed?.error?.message || parsed?.message || detail; } catch {}
+    throw new Error(`${provider} API ${response.status}: ${String(message || "Provider error").slice(0, 240)}`);
+  }
+  if (!response.body?.getReader) throw new Error(`${provider} did not provide a readable stream`);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let reply = "";
+  const readLine = (line) => {
+    if (!line.startsWith("data:")) return;
+    const payload = line.slice(5).trim();
+    if (!payload || payload === "[DONE]") return;
+    let data;
+    try { data = JSON.parse(payload); } catch { throw new Error(`${provider} returned malformed streaming data`); }
+    if (data?.error) throw new Error(data.error.message || `${provider} stream error`);
+    const chunk = extractText(data);
+    if (chunk) { reply += chunk; onToken(chunk); }
+  };
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || "";
+      for (const line of lines) readLine(line);
+      if (done) break;
+    }
+    if (buffer.trim()) readLine(buffer.trim());
+  } finally {
+    try { reader.releaseLock(); } catch {}
+  }
+  if (!reply.trim()) throw new Error(`${provider} returned an empty streaming response`);
+  return reply;
+}
+async function streamOpenAICompatible(url, headers, body, provider, timeoutMs, onToken) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify({ ...body, stream: true }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  return consumeSse(response, provider, extractOpenAIStreamText, onToken);
+}
+async function streamGemini(prompt, history = [], timeoutMs, mode = "general", onToken = () => {}) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("Gemini key not configured");
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${key}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: getSystemInstruction(mode) }] },
+        contents: [
+          ...history.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] })),
+          { role: "user", parts: [{ text: prompt }] }
+        ]
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    }
+  );
+  return consumeSse(response, "Gemini", extractGeminiText, onToken);
+}
+async function streamGroq(prompt, history = [], timeoutMs, mode = "general", onToken = () => {}) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error("Groq key not configured");
+  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+  return streamOpenAICompatible(
+    "https://api.groq.com/openai/v1/chat/completions",
+    { Authorization: `Bearer ${key}` },
+    { model, messages: [{ role: "system", content: getSystemInstruction(mode) }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
+    "Groq", timeoutMs, onToken
+  );
+}
+async function streamOpenRouter(prompt, history = [], timeoutMs, mode = "general", onToken = () => {}) {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("OpenRouter key not configured");
+  const model = process.env.OPENROUTER_MODEL || "openrouter/free";
+  return streamOpenAICompatible(
+    "https://openrouter.ai/api/v1/chat/completions",
+    { Authorization: `Bearer ${key}`, "HTTP-Referer": process.env.APP_URL || "https://neuroaii.netlify.app", "X-Title": "NeuroX AI" },
+    { model, messages: [{ role: "system", content: getSystemInstruction(mode) }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
+    "OpenRouter", timeoutMs, onToken
+  );
+}
+const streamProviders = { gemini: streamGemini, groq: streamGroq, openrouter: streamOpenRouter };
+
 
 /**
  * Try configured providers in priority order. Missing keys are skipped;
@@ -119,7 +252,7 @@ export function getAvailableModels() {
 /**
  * A requested provider is tried first; configured providers remain as automatic fallbacks.
  */
-export async function getAIResponse(prompt, requestedProvider = "auto", history = []) {
+export async function getAIResponse(prompt, requestedProvider = "auto", history = [], mode = "general") {
   const configuredOrder = (process.env.AI_PROVIDER_ORDER || "groq,openrouter,gemini")
     .split(",")
     .map((name) => name.trim().toLowerCase())
@@ -148,7 +281,7 @@ export async function getAIResponse(prompt, requestedProvider = "auto", history 
     }
 
     try {
-      const rawReply = await providers[name](prompt, history, Math.min(perProviderMs, remainingMs));
+      const rawReply = await providers[name](prompt, history, Math.min(perProviderMs, remainingMs), mode);
       const reply = normalizeChartToolCall(rawReply);
       console.log(`[AI] Response served by ${name}`);
       return { reply, provider: name };
@@ -163,3 +296,45 @@ export async function getAIResponse(prompt, requestedProvider = "auto", history 
   }
   throw new Error(`All configured AI providers failed or timed out. ${errors.join(" | ")}`);
 }
+
+/**
+ * Stream provider output to the HTTP layer. Fallback is attempted only before
+ * the first token, avoiding duplicated or mixed-provider partial answers.
+ */
+export async function streamAIResponse(prompt, requestedProvider = "auto", history = [], mode = "general", onToken = () => {}) {
+  const configuredOrder = (process.env.AI_PROVIDER_ORDER || "groq,openrouter,gemini")
+    .split(",").map((name) => name.trim().toLowerCase()).filter((name) => streamProviders[name]);
+  const order = [...new Set([...configuredOrder, "groq", "openrouter", "gemini"])];
+  const selected = String(requestedProvider || "auto").toLowerCase();
+  const attemptOrder = selected !== "auto" && streamProviders[selected]
+    ? [selected, ...order.filter((name) => name !== selected)]
+    : order;
+  const totalBudgetMs = Math.max(12_000, Math.min(Number(process.env.AI_STREAM_TOTAL_TIMEOUT_MS) || 55_000, 60_000));
+  const perProviderMs = Math.max(8_000, Math.min(Number(process.env.AI_STREAM_PROVIDER_TIMEOUT_MS) || 28_000, 45_000));
+  const deadline = Date.now() + totalBudgetMs;
+  const errors = [];
+
+  for (const name of attemptOrder) {
+    const keyName = { gemini: "GEMINI_API_KEY", groq: "GROQ_API_KEY", openrouter: "OPENROUTER_API_KEY" }[name];
+    if (!process.env[keyName]) continue;
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 1_000) break;
+    let emitted = false;
+    try {
+      const reply = await streamProviders[name](
+        prompt, history, Math.min(perProviderMs, remainingMs), mode,
+        (token) => { emitted = true; onToken(token); }
+      );
+      console.log(`[AI] Streaming response served by ${name}`);
+      return { reply: normalizeChartToolCall(reply), provider: name };
+    } catch (error) {
+      if (emitted) throw error;
+      console.error(`[AI] ${name} streaming failed before first token; trying next provider:`, error.message);
+      errors.push(`${name}: ${error.message}`);
+    }
+  }
+  throw new Error(errors.length
+    ? `All streaming AI providers failed or timed out. ${errors.join(" | ")}`
+    : "No AI provider configured. Add GEMINI_API_KEY, GROQ_API_KEY, or OPENROUTER_API_KEY in Render.");
+}
+
