@@ -885,3 +885,54 @@ body.light .main-wrapper > .chat-header{
     padding:8px 12px max(8px,env(safe-area-inset-bottom));
   }
 }
+
+
+/* ===== One unified top bar: remove duplicate chat title bar ===== */
+.top-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:0 clamp(14px,3vw,42px);
+}
+.top-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:9px;
+}
+.top-actions .icon-btn{
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  border:1px solid var(--nx-line);
+  border-radius:10px;
+  background:rgba(255,255,255,.035);
+  color:var(--nx-text);
+}
+.top-actions .icon-btn:hover{
+  background:rgba(255,255,255,.1);
+  border-color:rgba(154,139,255,.35);
+}
+body.light .top-bar{
+  background:rgba(255,255,255,.94);
+  border-bottom:1px solid var(--border-light);
+}
+body.light .top-actions .icon-btn{
+  color:var(--text-dark);
+  background:#f3f4f8;
+  border-color:#e5e7eb;
+}
+@media(max-width:700px){
+  .top-bar{padding:0 12px;gap:8px}
+  .top-actions{gap:5px}
+  .top-actions .status-pill{display:none}
+  .top-actions .icon-btn{width:32px;height:32px;flex-basis:32px}
+  .top-actions .login-btn{padding:7px 9px;font-size:10px}
+}
+@media(max-width:380px){
+  .brand{font-size:16px;gap:6px}
+  .brand-mark{width:28px;height:28px}
+  .brand small{font-size:7px;letter-spacing:1px}
+  .top-actions{gap:4px}
+}
