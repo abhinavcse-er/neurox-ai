@@ -1,6 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { getGeminiResponse } from "../services/gemini.js";
+import { getAIResponse } from "../services/ai.js";
 import { getWikiSummary } from "../services/wikipedia.js";
 
 const router = Router();
@@ -23,19 +23,21 @@ router.post("/", chatLimiter, async (req, res) => {
     return res.status(400).json({ error: "message too long (max 2000 chars)" });
   }
 
+  const prompt = message.trim();
+
   try {
-    // Try Wikipedia first (free, no quota)
-    let reply = await getWikiSummary(message.trim());
+    // Wikipedia is a free knowledge fallback for direct factual lookups.
+    const wikiReply = await getWikiSummary(prompt);
+    if (wikiReply) return res.json({ reply: wikiReply, provider: "wikipedia" });
 
-    // Fall back to Gemini
-    if (!reply) {
-      reply = await getGeminiResponse(message.trim());
-    }
-
-    return res.json({ reply });
+    // AI providers are attempted in configured order; failures automatically fall back.
+    const result = await getAIResponse(prompt);
+    return res.json(result);
   } catch (err) {
     console.error("[chat] Error:", err.message);
-    return res.status(502).json({ error: "AI service temporarily unavailable" });
+    return res.status(503).json({
+      error: "All AI providers are temporarily unavailable. Please try again shortly.",
+    });
   }
 });
 
