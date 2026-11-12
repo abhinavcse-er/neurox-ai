@@ -52,14 +52,14 @@ async function postJson(url, headers, body, provider) {
   return response.json();
 }
 
-async function gemini(prompt) {
+async function gemini(prompt, history = []) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("Gemini key not configured");
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const data = await postJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {},
-    { systemInstruction: { parts: [{ text: RESPONSE_FORMAT_INSTRUCTIONS }] }, contents: [{ role: "user", parts: [{ text: prompt }] }] },
+    { systemInstruction: { parts: [{ text: RESPONSE_FORMAT_INSTRUCTIONS }] }, contents: [...history.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] })), { role: "user", parts: [{ text: prompt }] }] },
     "Gemini"
   );
   const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim();
@@ -67,14 +67,14 @@ async function gemini(prompt) {
   return text;
 }
 
-async function groq(prompt) {
+async function groq(prompt, history = []) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("Groq key not configured");
   const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
   const data = await postJson(
     "https://api.groq.com/openai/v1/chat/completions",
     { Authorization: `Bearer ${key}` },
-    { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, { role: "user", content: prompt }], temperature: 0.7 },
+    { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
     "Groq"
   );
   const text = data.choices?.[0]?.message?.content?.trim();
@@ -82,7 +82,7 @@ async function groq(prompt) {
   return text;
 }
 
-async function openrouter(prompt) {
+async function openrouter(prompt, history = []) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new Error("OpenRouter key not configured");
   const model = process.env.OPENROUTER_MODEL || "openrouter/free";
@@ -93,7 +93,7 @@ async function openrouter(prompt) {
       "HTTP-Referer": process.env.APP_URL || "https://neuroaii.netlify.app",
       "X-Title": "NeuroX AI",
     },
-    { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, { role: "user", content: prompt }], temperature: 0.7 },
+    { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
     "OpenRouter"
   );
   const text = data.choices?.[0]?.message?.content?.trim();
@@ -119,7 +119,7 @@ export function getAvailableModels() {
 /**
  * A requested provider is tried first; configured providers remain as automatic fallbacks.
  */
-export async function getAIResponse(prompt, requestedProvider = "auto") {
+export async function getAIResponse(prompt, requestedProvider = "auto", history = []) {
   const order = (process.env.AI_PROVIDER_ORDER || "gemini,groq,openrouter")
     .split(",")
     .map((name) => name.trim().toLowerCase())
@@ -134,7 +134,7 @@ export async function getAIResponse(prompt, requestedProvider = "auto") {
     const keyName = { gemini: "GEMINI_API_KEY", groq: "GROQ_API_KEY", openrouter: "OPENROUTER_API_KEY" }[name];
     if (!process.env[keyName]) continue;
     try {
-      const rawReply = await providers[name](prompt);
+      const rawReply = await providers[name](prompt, history);
       const reply = normalizeChartToolCall(rawReply);
       console.log(`[AI] Response served by ${name}`);
       return { reply, provider: name };
