@@ -2,227 +2,155 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeuroX AI | Auth</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="Sign in or create your NeuroX AI account.">
+  <title>Sign in · NeuroX AI</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    /* Auth-specific styles */
-    body {
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      overflow: hidden;
-      padding: 20px;
-    }
-
-    /* Animated blobs */
-    body::before, body::after {
-      content: "";
-      position: absolute;
-      width: 350px;
-      height: 350px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 50%;
-      filter: blur(120px);
-      animation: move 8s infinite alternate;
-    }
-
-    body::after {
-      right: 0;
-      bottom: 0;
-      animation-delay: 4s;
-    }
-
-    @keyframes move {
-      from { transform: translate(-40px,-40px); }
-      to   { transform: translate(40px,40px); }
-    }
-
-    .scene {
-      width: 100%;
-      max-width: 400px;
-      height: 520px;
-      perspective: 1000px;
-    }
-
-    .card {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.8s;
-    }
-
-    .card.flip {
-      transform: rotateY(180deg);
-    }
-
-    .card-face {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(20px);
-      border-radius: 20px;
-      box-shadow: 0 25px 45px rgba(0,0,0,0.3);
-      padding: 35px 25px;
-      color: #fff;
-      backface-visibility: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    .card-face h2 {
-      text-align: center;
-      margin-bottom: 25px;
-      font-size: 26px;
-    }
-
-    input {
-      padding: 14px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 12px;
-      outline: none;
-      font-size: 15px;
-    }
-
-    button {
-      margin-top: 15px;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      background: #fff;
-      color: #333;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-      font-size: 15px;
-    }
-
-    button:hover {
-      background: #e0e0e0;
-      transform: translateY(-2px);
-    }
-
-    .switch {
-      text-align: center;
-      margin-top: 15px;
-      cursor: pointer;
-      font-size: 14px;
-      opacity: 0.85;
-    }
-
-    .back {
-      transform: rotateY(180deg);
-    }
-
-    #authMsg {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 14px;
-      min-height: 20px;
-      color: #fde68a;
-    }
-
-    @media(max-width:480px) {
-      .scene { height: 500px; }
-      .card-face { padding: 30px 20px; }
-      .card-face h2 { font-size: 22px; }
-      input, button { font-size: 14px; padding: 12px; }
-    }
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:'DM Sans',sans-serif}
+    body{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px;background:#0b1020;color:#edf2ff;overflow-x:hidden}
+    body:before,body:after{content:"";position:fixed;width:340px;height:340px;border-radius:50%;filter:blur(100px);opacity:.16;pointer-events:none}
+    body:before{background:#7464ee;top:-180px;left:-130px}body:after{background:#16a6bd;right:-180px;bottom:-180px}
+    .auth-shell{width:min(100%,430px);position:relative;z-index:1}
+    .brand{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto 24px;color:#f5f6ff;text-decoration:none;font:700 21px 'Space Grotesk',sans-serif;letter-spacing:-.7px}
+    .brand img{width:40px;height:40px}.brand span span{color:#a99bff}
+    .auth-card{padding:clamp(23px,6vw,36px);border:1px solid rgba(148,163,184,.17);border-radius:22px;background:rgba(17,24,42,.94);box-shadow:0 24px 80px rgba(0,0,0,.35)}
+    .eyebrow{text-align:center;color:#a99bff;font-size:10px;font-weight:700;letter-spacing:2px;margin:0 0 10px}
+    h1{text-align:center;font:600 29px 'Space Grotesk',sans-serif;letter-spacing:-1px;margin:0}
+    .subtitle{text-align:center;color:#98a4b8;font-size:13px;line-height:1.6;margin:9px 0 25px}
+    .tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;background:#0b1120;border:1px solid rgba(148,163,184,.12);border-radius:12px;margin-bottom:22px}
+    .tab{border:0;border-radius:9px;padding:10px;background:transparent;color:#9ba7bc;font:600 13px 'DM Sans',sans-serif;cursor:pointer}
+    .tab.active{background:#252447;color:#e9e5ff;box-shadow:0 2px 8px #070a13}
+    .field{display:block;margin:0 0 14px}.field span{display:block;color:#c2cbda;font-size:12px;font-weight:600;margin-bottom:7px}
+    .field input{width:100%;height:47px;border:1px solid rgba(148,163,184,.2);border-radius:11px;background:#0d1424;color:#f4f6ff;padding:0 13px;font:14px 'DM Sans',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s}
+    .field input:focus{border-color:#8d80ff;box-shadow:0 0 0 3px rgba(141,128,255,.13)}
+    .field input::placeholder{color:#65728a}
+    .password-wrap{position:relative}.password-wrap input{padding-right:46px}.toggle-pass{position:absolute;right:8px;top:7px;width:34px;height:34px;border:0;background:transparent;color:#8e9bb2;cursor:pointer}
+    .submit{width:100%;height:48px;margin-top:5px;border:0;border-radius:11px;background:linear-gradient(110deg,#8172f2,#5e79d9);color:white;font:700 14px 'DM Sans',sans-serif;cursor:pointer;box-shadow:0 8px 22px rgba(101,91,220,.22);transition:transform .2s,opacity .2s}
+    .submit:hover{transform:translateY(-1px)}.submit:disabled{opacity:.6;cursor:wait;transform:none}
+    .forgot{display:block;margin:14px auto 0;border:0;background:none;color:#aaa0ff;font:600 12px 'DM Sans',sans-serif;cursor:pointer}
+    .message{min-height:20px;margin:14px 0 0;text-align:center;font-size:12px;line-height:1.5;color:#8fe0bf}
+    .back-link{display:block;text-align:center;margin-top:20px;color:#8995aa;text-decoration:none;font-size:12px}.back-link:hover{color:#c7c0ff}
+    [hidden]{display:none!important}
+    @media(max-width:420px){body{padding:18px 14px}.brand{margin-bottom:17px}.auth-card{border-radius:18px}.auth-shell{max-width:390px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important}}
   </style>
 </head>
 <body>
+  <main class="auth-shell">
+    <a class="brand" href="index.html"><img src="favicon.svg" alt=""><span>NeuroX<span>AI</span></span></a>
+    <section class="auth-card" aria-labelledby="authTitle">
+      <p class="eyebrow">YOUR AI WORKSPACE</p>
+      <h1 id="authTitle">Welcome back</h1>
+      <p class="subtitle" id="authSubtitle">Sign in to continue your conversations.</p>
+      <div class="tabs" role="tablist" aria-label="Account access">
+        <button class="tab active" id="loginTab" type="button" role="tab" aria-selected="true">Sign in</button>
+        <button class="tab" id="registerTab" type="button" role="tab" aria-selected="false">Create account</button>
+      </div>
+      <form id="authForm" novalidate>
+        <label class="field" id="nameField" hidden><span>Full name</span><input id="fullName" type="text" autocomplete="name" placeholder="Your name"></label>
+        <label class="field"><span>Email address</span><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+        <label class="field"><span>Password</span><div class="password-wrap"><input id="password" type="password" autocomplete="current-password" placeholder="At least 6 characters" minlength="6" required><button class="toggle-pass" id="togglePassword" type="button" aria-label="Show password"><i class="fa-regular fa-eye"></i></button></div></label>
+        <button class="submit" id="submitBtn" type="submit">Sign in</button>
+      </form>
+      <button class="forgot" id="forgotBtn" type="button">Forgot password?</button>
+      <p class="message" id="authMessage" role="status" aria-live="polite"></p>
+    </section>
+    <a class="back-link" href="index.html"><i class="fa-solid fa-arrow-left"></i> Back to NeuroX AI</a>
+  </main>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-<div class="scene">
-  <div class="card" id="card">
+    const firebaseConfig = {
+      apiKey: "AIzaSyBfLn_JxmovMapRqby9RrdceaOc0Mmeo6Y",
+      authDomain: "neurox-ai-2cd91.firebaseapp.com",
+      projectId: "neurox-ai-2cd91",
+      storageBucket: "neurox-ai-2cd91.appspot.com",
+      messagingSenderId: "242667828902",
+      appId: "1:242667828902:web:d4be4ca6e8c2ec75726667"
+    };
+    const auth = getAuth(initializeApp(firebaseConfig));
+    const $ = id => document.getElementById(id);
+    let mode = "login";
 
-    <!-- Login -->
-    <div class="card-face front">
-      <h2>Login</h2>
-      <input type="email" id="loginEmail" placeholder="Email">
-      <input type="password" id="loginPassword" placeholder="Password">
-      <button onclick="loginUser()">Login</button>
-      <div id="authMsg"></div>
-      <div class="switch" onclick="flipCard()">Don't have an account? Register</div>
-    </div>
+    const friendlyErrors = {
+      "auth/invalid-email":"Please enter a valid email address.",
+      "auth/user-not-found":"No account found with this email. Create an account first.",
+      "auth/wrong-password":"Incorrect password. Please try again.",
+      "auth/invalid-credential":"Email or password is incorrect.",
+      "auth/email-already-in-use":"This email is already registered. Please sign in.",
+      "auth/weak-password":"Use a password with at least 6 characters.",
+      "auth/too-many-requests":"Too many attempts. Please wait a while and try again.",
+      "auth/network-request-failed":"Network error. Check your internet connection.",
+      "auth/operation-not-allowed":"Email/password sign-in is disabled in Firebase Authentication."
+    };
+    function showMessage(message, error=false) {
+      $("authMessage").textContent=message;
+      $("authMessage").style.color=error?"#fca5a5":"#8fe0bf";
+    }
+    function setMode(next) {
+      mode=next;
+      const registering=mode==="register";
+      $("loginTab").classList.toggle("active",!registering);
+      $("registerTab").classList.toggle("active",registering);
+      $("loginTab").setAttribute("aria-selected",String(!registering));
+      $("registerTab").setAttribute("aria-selected",String(registering));
+      $("nameField").hidden=!registering;
+      $("fullName").required=registering;
+      $("password").autocomplete=registering?"new-password":"current-password";
+      $("authTitle").textContent=registering?"Create your account":"Welcome back";
+      $("authSubtitle").textContent=registering?"Join NeuroX AI and start exploring.":"Sign in to continue your conversations.";
+      $("submitBtn").textContent=registering?"Create account":"Sign in";
+      $("forgotBtn").hidden=registering;
+      showMessage("");
+    }
+    $("loginTab").addEventListener("click",()=>setMode("login"));
+    $("registerTab").addEventListener("click",()=>setMode("register"));
+    $("togglePassword").addEventListener("click",()=>{
+      const input=$("password"),show=input.type==="password";
+      input.type=show?"text":"password";
+      $("togglePassword").innerHTML=show?'<i class="fa-regular fa-eye-slash"></i>':'<i class="fa-regular fa-eye"></i>';
+      $("togglePassword").setAttribute("aria-label",show?"Hide password":"Show password");
+    });
+    onAuthStateChanged(auth,user=>{if(user)window.location.replace("index.html");});
 
-    <!-- Register -->
-    <div class="card-face back">
-      <h2>Register</h2>
-      <input type="text" id="regName" placeholder="Full Name">
-      <input type="email" id="regEmail" placeholder="Email">
-      <input type="password" id="regPassword" placeholder="Password">
-      <button onclick="registerUser()">Create Account</button>
-      <div id="authMsgReg"></div>
-      <div class="switch" onclick="flipCard()">Already have an account? Login</div>
-    </div>
-
-  </div>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-// ⚠️  Replace storageBucket and messagingSenderId with your real values
-const firebaseConfig = {
-  apiKey:            import.meta.env?.VITE_FIREBASE_API_KEY            || "AIzaSyBfLn_JxmovMapRqby9RrdceaOc0Mmeo6Y",
-  authDomain:        import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN        || "eurox-ai-2cd91.firebaseapp.com",
-  projectId:         import.meta.env?.VITE_FIREBASE_PROJECT_ID         || "neurox-ai-2cd91",
-  storageBucket:     import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET     || "neurox-ai-2cd91.appspot.com",
-  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID|| "242667828902",
-  appId:             import.meta.env?.VITE_FIREBASE_APP_ID             || "1:242667828902:web:d4be4ca6e8c2ec75726667"
-};
-
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-function showMsg(id, msg, isError = false) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.textContent = msg;
-    el.style.color = isError ? "#fca5a5" : "#6ee7b7";
-  }
-}
-
-window.flipCard = () => document.getElementById("card").classList.toggle("flip");
-
-window.registerUser = async () => {
-  const email    = document.getElementById("regEmail").value.trim();
-  const password = document.getElementById("regPassword").value;
-
-  if (password.length < 6) {
-    showMsg("authMsgReg", "Password must be at least 6 characters.", true);
-    return;
-  }
-
-  try {
-    await createUserWithEmailAndPassword(auth, email, password);
-    showMsg("authMsgReg", "✅ Registration successful! Redirecting…");
-    setTimeout(() => window.location.href = "index.html", 1500);
-  } catch (error) {
-    showMsg("authMsgReg", error.message, true);
-  }
-};
-
-window.loginUser = async () => {
-  const email    = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value;
-
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    showMsg("authMsg", "✅ Login successful! Redirecting…");
-    setTimeout(() => window.location.href = "index.html", 1200);
-  } catch (error) {
-    showMsg("authMsg", error.message, true);
-  }
-};
-</script>
-
+    $("authForm").addEventListener("submit",async event=>{
+      event.preventDefault();
+      const email=$("email").value.trim();
+      const password=$("password").value;
+      const name=$("fullName").value.trim();
+      if(!email||!password){showMessage("Please enter your email and password.",true);return;}
+      if(mode==="register"&&!name){showMessage("Please enter your full name.",true);return;}
+      if(password.length<6){showMessage("Password must be at least 6 characters.",true);return;}
+      const button=$("submitBtn");
+      button.disabled=true;button.textContent=mode==="register"?"Creating account…":"Signing in…";
+      showMessage("");
+      try{
+        if(mode==="register"){
+          const credential=await createUserWithEmailAndPassword(auth,email,password);
+          await updateProfile(credential.user,{displayName:name});
+        }else{
+          await signInWithEmailAndPassword(auth,email,password);
+        }
+        showMessage("Success! Opening NeuroX AI…");
+        window.location.replace("index.html");
+      }catch(error){
+        showMessage(friendlyErrors[error.code]||"Something went wrong. Please try again.",true);
+        button.disabled=false;button.textContent=mode==="register"?"Create account":"Sign in";
+      }
+    });
+    $("forgotBtn").addEventListener("click",async()=>{
+      const email=$("email").value.trim();
+      if(!email){showMessage("Enter your email address first.",true);$("email").focus();return;}
+      try{await sendPasswordResetEmail(auth,email);showMessage("Password reset email sent. Check your inbox.");}
+      catch(error){showMessage(friendlyErrors[error.code]||"Could not send reset email. Please try again.",true);}
+    });
+  </script>
 </body>
 </html>
