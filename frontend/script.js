@@ -12,6 +12,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+// Call the backend directly for SSE so intermediary static-site proxies do not buffer tokens.
+const API_BASE_URL = window.location.hostname === "localhost" ? "http://localhost:10000" : "https://neurox-ai-backend-0ow2.onrender.com";
 const auth = getAuth(app);
 
 const $ = (selector) => document.querySelector(selector);
@@ -592,9 +594,9 @@ if ("webkitSpeechRecognition" in window && micBtn) {
 }
 
 async function streamFromBackend(message, onToken = () => {}) {
-  const response = await fetch("/api/chat/stream", {
+  const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
     body: JSON.stringify({
       message,
       provider: modelSelect?.value || "auto",
