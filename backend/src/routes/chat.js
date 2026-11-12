@@ -103,6 +103,17 @@ router.post("/stream", chatLimiter, async (req, res) => {
   const heartbeat = setInterval(() => sendEvent("ping", { at: Date.now() }), 12000);
 
   try {
+    // Preserve the existing free Wikipedia fallback for general factual lookups.
+    // Stream it as one complete token so the frontend uses the same rendering path.
+    if (provider === "auto" && safeMode === "general") {
+      const wikiReply = await getWikiSummary(prompt);
+      if (wikiReply) {
+        sendEvent("token", { token: wikiReply });
+        sendEvent("done", { provider: "wikipedia" });
+        return;
+      }
+    }
+
     const result = await streamAIResponse(
       prompt, provider, boundedHistory, safeMode,
       (token) => sendEvent("token", { token })
