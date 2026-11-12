@@ -8,7 +8,7 @@ const RESPONSE_FORMAT_INSTRUCTIONS = `You are NeuroX AI. Format every answer for
 - Use clear headings, short paragraphs, bullets and tables when they improve clarity.
 - Put source code in fenced code blocks with the correct language tag (for example \`\`\`javascript).
 - Put terminal commands in fenced bash, powershell, or console blocks; keep command output separate from commands.
-- For a chart/graph the user requests, output a fenced chart block containing ONLY valid JSON in this schema:
+- For a chart/graph the user requests, output a fenced chart block containing ONLY valid JSON in this schema. Do not call or serialize chart tools/functions. Never emit tool-call markers such as <|tool_call_start|> or <|tool_call_end|>.
 \`\`\`chart
 {"type":"bar","title":"Chart title","labels":["A","B"],"datasets":[{"label":"Values","data":[10,20]}]}
 \`\`\`
@@ -16,6 +16,27 @@ Supported chart types: bar, line, pie, doughnut. Do not invent data; if values a
 - Use Mermaid fenced blocks only when a flowchart or sequence diagram is useful.
 - Never wrap ordinary prose in code blocks. Do not output raw HTML.`;
 
+/**
+ * Convert serialized chart tool calls from some models into the Markdown
+ * chart JSON block consumed by the frontend renderer.
+ */
+function normalizeChartToolCall(reply) {
+  const match = String(reply).match(/<\\|tool_call_start\\|>\\s*\\[\\s*chart\\s*\\(([\\s\\S]*?)\\)\\s*\\]\\s*<\\|tool_call_end\\|>/i);
+  if (!match) return reply;
+  const args = match[1];
+  const title = args.match(/title\\s*=\\s*(['\"])(.*?)\\1/i)?.[2] || "Chart";
+  const labelsBody = args.match(/labels\\s*=\\s*\\[([\\s\\S]*?)\\]/i)?.[1];
+  const datasetBody = args.match(/datasets\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*$/i)?.[1];
+  if (labelsBody == null || datasetBody == null) return reply;
+  const labels = [...labelsBody.matchAll(/(['\"])(.*?)\\1/g)].map((item) => item[2]);
+  const datasetLabel = datasetBody.match(/label\\s*=\\s*(['\"])(.*?)\\1/i)?.[2] || "Values";
+  const valuesBody = datasetBody.match(/data\\s*=\\s*\\[([\\d.,\\s-]+)\\]/i)?.[1];
+  if (!labels.length || valuesBody == null) return reply;
+  const values = valuesBody.split(",").map((value) => Number(value.trim())).filter(Number.isFinite);
+  if (values.length !== labels.length) return reply;
+  const chart = { type: "bar", title, labels, datasets: [{ label: datasetLabel, data: values }] };
+  return ["```chart", JSON.stringify(chart), "```"].join("\\n");
+}
 async function postJson(url, headers, body, provider) {
   const response = await fetch(url, {
     method: "POST",
@@ -113,7 +134,8 @@ export async function getAIResponse(prompt, requestedProvider = "auto") {
     const keyName = { gemini: "GEMINI_API_KEY", groq: "GROQ_API_KEY", openrouter: "OPENROUTER_API_KEY" }[name];
     if (!process.env[keyName]) continue;
     try {
-      const reply = await providers[name](prompt);
+      const rawReply = await providers[name](prompt);
+      const reply = normalizeChartToolCall(rawReply);
       console.log(`[AI] Response served by ${name}`);
       return { reply, provider: name };
     } catch (error) {
