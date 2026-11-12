@@ -1313,3 +1313,9 @@ body.light .export-btn{background:#fff;color:#5a6680;border-color:#e1e5ef}
 @media(prefers-reduced-motion:reduce){
   .history-sidebar,.suggestions button,.new-chat-btn{transition:none}
 }
+
+
+/* Accessible live-generation indicator */
+.chat.incoming.is-loading p{color:#a8b5cd}
+.chat.incoming.is-loading p::after{content:"  •••";display:inline-block;color:#a99aff;letter-spacing:2px;animation:nxTypingPulse 1.05s ease-in-out infinite}
+@keyframes nxTypingPulse{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-1px)}}
