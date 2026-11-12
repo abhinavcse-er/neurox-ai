@@ -16,7 +16,7 @@ const chatLimiter = rateLimit({
 });
 
 router.post("/", chatLimiter, async (req, res) => {
-  const { message, provider = "auto", history = [], mode = "general" } = req.body;
+  const { message, provider = "auto", history = [], mode = "general" } = req.body || {};
 
   if (!message || typeof message !== "string" || message.trim().length === 0) {
     return res.status(400).json({ error: "message is required" });
@@ -99,6 +99,8 @@ router.post("/stream", chatLimiter, async (req, res) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     res.flush?.();
   };
+  // Keep intermediary proxies from closing an otherwise healthy generation.
+  const heartbeat = setInterval(() => sendEvent("ping", { at: Date.now() }), 12000);
 
   try {
     const result = await streamAIResponse(
@@ -110,6 +112,7 @@ router.post("/stream", chatLimiter, async (req, res) => {
     console.error("[chat-stream] Error:", err.message);
     sendEvent("error", { error: "The AI stream was interrupted. Please retry or switch provider." });
   } finally {
+    clearInterval(heartbeat);
     if (!res.writableEnded) res.end();
   }
 });
