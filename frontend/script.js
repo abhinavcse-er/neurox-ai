@@ -164,6 +164,36 @@ function normalizeToolChartText(value) {
   return text.slice(0, markerStart) + "\`\`\`chart\n" + JSON.stringify(chart) + "\n\`\`\`" +
     text.slice(markerEnd + "<|tool_call_end|>".length);
 }
+let chartLibraryPromise = null;
+function ensureChartLibrary() {
+  if (window.Chart) return Promise.resolve(window.Chart);
+  if (chartLibraryPromise) return chartLibraryPromise;
+  const sources = [
+    "https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js",
+    "https://unpkg.com/chart.js@4.4.7/dist/chart.umd.js"
+  ];
+  chartLibraryPromise = (async () => {
+    for (const src of sources) {
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.async = true;
+          script.onload = () => window.Chart ? resolve() : reject(new Error("Chart.js loaded without its global API"));
+          script.onerror = () => reject(new Error("Could not load " + src));
+          document.head.appendChild(script);
+        });
+        if (window.Chart) return window.Chart;
+      } catch (error) {
+        console.warn("Chart.js fallback failed:", error);
+      }
+    }
+    chartLibraryPromise = null;
+    throw new Error("Chart.js could not load from the primary or backup CDN. Check network/ad-blocker and CSP.");
+  })();
+  return chartLibraryPromise;
+}
+
 function enhanceRichOutput(root) {
   root.querySelectorAll("pre > code").forEach((code) => {
     const pre = code.parentElement;
@@ -193,28 +223,29 @@ function enhanceRichOutput(root) {
       card.appendChild(canvas);
       pre.replaceWith(card);
 
-      if (window.Chart) {
-        try {
-          chartInstances.push(new Chart(canvas, {
-            type: chartConfig.type,
-            data: { labels: chartConfig.labels, datasets: chartConfig.datasets },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              animation: { duration: 250 },
-              plugins: { legend: { display: true, labels: { color: document.body.classList.contains("light") ? "#26334b" : "#dce5f5" } } },
-              scales: ["pie", "doughnut"].includes(chartConfig.type) ? {} : {
-                x: { ticks: { color: "#9ba8bd" }, grid: { color: "rgba(148,163,184,.12)" } },
-                y: { beginAtZero: true, ticks: { color: "#9ba8bd" }, grid: { color: "rgba(148,163,184,.12)" } }
-              }
+      ensureChartLibrary().then((ChartLibrary) => {
+        if (!canvas.isConnected) return;
+        chartInstances.push(new ChartLibrary(canvas, {
+          type: chartConfig.type,
+          data: { labels: chartConfig.labels, datasets: chartConfig.datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 250 },
+            plugins: { legend: { display: true, labels: { color: document.body.classList.contains("light") ? "#26334b" : "#dce5f5" } } },
+            scales: ["pie", "doughnut"].includes(chartConfig.type) ? {} : {
+              x: { ticks: { color: "#9ba8bd" }, grid: { color: "rgba(148,163,184,.12)" } },
+              y: { beginAtZero: true, ticks: { color: "#9ba8bd" }, grid: { color: "rgba(148,163,184,.12)" } }
             }
-          }));
-        } catch (error) {
-          card.textContent = "Chart could not be rendered: " + error.message;
-        }
-      } else {
-        card.textContent = "Chart library did not load. Please refresh the page.";
-      }
+          }
+        }));
+      }).catch((error) => {
+        console.error("Chart rendering failed:", error);
+        const message = document.createElement("p");
+        message.className = "chart-error";
+        message.textContent = "Chart library unavailable. Check your internet connection, disable CDN-blocking extensions, or inspect the browser Console.";
+        card.appendChild(message);
+      });
       return;
     }
 
