@@ -166,8 +166,9 @@ function enhanceRichOutput(root) {
 
     // Normalize multiple AI chart schemas before rendering with Chart.js.
     let chartConfig = null;
-    if (["chart", "json"].includes(language)) {
-      try { chartConfig = normalizeChartConfig(JSON.parse(code.textContent.trim())); }
+    const codeText = code.textContent.trim();
+    if (["chart", "json"].includes(language) || codeText.startsWith("{")) {
+      try { chartConfig = normalizeChartConfig(JSON.parse(codeText)); }
       catch {}
     }
 
