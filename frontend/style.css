@@ -955,3 +955,6 @@ body.light #model-select{background:#fff;color:#182033}
 .chat.incoming p .chart-card canvas{width:100%;max-height:340px}
 .chat.incoming p .chart-error{color:#fca5a5;font-size:11px}
 @media(max-width:700px){.composer-tools{padding:0 4px}.format-hint{display:none}#model-select{max-width:190px}.chat.incoming p .chart-card{padding:8px}}
+
+.chat.incoming p .mermaid{max-width:100%;overflow-x:auto;margin:12px 0;padding:12px;border:1px solid var(--nx-line);border-radius:11px;background:rgba(7,12,24,.55)}
+.chat.incoming p .mermaid svg{max-width:100%;height:auto}
