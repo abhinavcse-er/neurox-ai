@@ -72,6 +72,23 @@ async function postJson(url, headers, body, provider, timeoutMs) {
   return data;
 }
 
+function extractMessageText(content) {
+  if (typeof content === "string") return content.trim();
+  if (Array.isArray(content)) {
+    return content.map((part) => {
+      if (typeof part === "string") return part;
+      if (typeof part?.text === "string") return part.text;
+      if (typeof part?.content === "string") return part.content;
+      return "";
+    }).join("").trim();
+  }
+  if (content && typeof content === "object") {
+    if (typeof content.text === "string") return content.text.trim();
+    if (Array.isArray(content.parts)) return content.parts.map((part) => part?.text || "").join("").trim();
+  }
+  return "";
+}
+
 function extractGeminiText(data) {
   const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
   const text = candidates.flatMap((candidate) => {
@@ -115,9 +132,9 @@ async function groq(prompt, history = [], timeoutMs, mode = "general") {
     { model, messages: [{ role: "system", content: getSystemInstruction(mode) }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
     "Groq", timeoutMs
   );
-  const text = data.choices?.[0]?.message?.content;
-  if (typeof text !== "string" || !text.trim()) throw new Error("Groq returned an empty or malformed response");
-  return text.trim();
+  const text = extractMessageText(data.choices?.[0]?.message?.content);
+  if (!text) throw new Error("Groq returned an empty or malformed response");
+  return text;
 }
 
 async function openrouter(prompt, history = [], timeoutMs, mode = "general") {
@@ -130,9 +147,9 @@ async function openrouter(prompt, history = [], timeoutMs, mode = "general") {
     { model, messages: [{ role: "system", content: getSystemInstruction(mode) }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
     "OpenRouter", timeoutMs
   );
-  const text = data.choices?.[0]?.message?.content;
-  if (typeof text !== "string" || !text.trim()) throw new Error("OpenRouter returned an empty or malformed response");
-  return text.trim();
+  const text = extractMessageText(data.choices?.[0]?.message?.content);
+  if (!text) throw new Error("OpenRouter returned an empty or malformed response");
+  return text;
 }
 
 const providers = { gemini, groq, openrouter };
