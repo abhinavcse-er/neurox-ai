@@ -124,10 +124,18 @@ chatHistory.forEach((item) => {
   }
 });
 
+function applyTheme(theme) {
+  const light = theme === "light";
+  document.body.classList.toggle("light", light);
+  const icon = themeBtn?.querySelector("i");
+  if (icon) icon.className = light ? "fa-solid fa-moon" : "fa-solid fa-sun";
+}
+try { applyTheme(localStorage.getItem("neurox-theme") || "dark"); }
+catch { applyTheme("dark"); }
 themeBtn?.addEventListener("click", () => {
-  document.body.classList.toggle("light");
-  const icon = themeBtn.querySelector("i");
-  if (icon) icon.className = document.body.classList.contains("light") ? "fa-solid fa-moon" : "fa-solid fa-sun";
+  const nextTheme = document.body.classList.contains("light") ? "dark" : "light";
+  applyTheme(nextTheme);
+  try { localStorage.setItem("neurox-theme", nextTheme); } catch {}
 });
 deleteBtn?.addEventListener("click", () => {
   if (!confirm("Clear this conversation from this browser?")) return;
