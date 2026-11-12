@@ -110,7 +110,7 @@ const providers = { gemini, groq, openrouter };
 export function getAvailableModels() {
   const configs = [
     { id: "gemini", label: "Gemini 2.5 Flash", model: process.env.GEMINI_MODEL || "gemini-2.5-flash", key: "GEMINI_API_KEY" },
-    { id: "groq", label: "Groq · Llama 3.3 70B", model: process.env.GROQ_MODEL || "openai/gpt-oss-120b", key: "GROQ_API_KEY" },
+    { id: "groq", label: "Groq · GPT-OSS 120B", model: process.env.GROQ_MODEL || "openai/gpt-oss-120b", key: "GROQ_API_KEY" },
     { id: "openrouter", label: "OpenRouter · Free", model: process.env.OPENROUTER_MODEL || "openrouter/free", key: "OPENROUTER_API_KEY" },
   ];
   return [{ id: "auto", label: "Auto (recommended)" }, ...configs.filter((item) => process.env[item.key])];
