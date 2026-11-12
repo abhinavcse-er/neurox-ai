@@ -76,20 +76,21 @@ function safeMarkdown(value) {
 }
 
 function normalizeToolChartText(value) {
-  const match = String(value).match(/<\\|tool_call_start\\|>\\s*\\[\\s*chart\\s*\\(([\\s\\S]*?)\\)\\s*\\]\\s*<\\|tool_call_end\\|>/i);
+  const match = String(value).match(/<\|tool_call_start\|>\s*\[\s*chart\s*\(([\s\S]*?)\)\s*\]\s*<\|tool_call_end\|>/i);
   if (!match) return value;
   const args = match[1];
-  const title = args.match(/title\\s*=\\s*(['"])(.*?)\\1/i)?.[2] || "Chart";
-  const labelsBody = args.match(/labels\\s*=\\s*\\[([\\s\\S]*?)\\]/i)?.[1];
-  const datasetBody = args.match(/datasets\\s*=\\s*\\[([\\s\\S]*)\\]\\s*$/i)?.[1];
+  const title = args.match(/title\s*=\s*(['"])(.*?)\1/i)?.[2] || "Chart";
+  const labelsBody = args.match(/labels\s*=\s*\[([\s\S]*?)\]/i)?.[1];
+  const datasetBody = args.match(/datasets\s*=\s*\[([\s\S]*)\]\s*$/i)?.[1];
   if (labelsBody == null || datasetBody == null) return value;
-  const labels = [...labelsBody.matchAll(/(['"])(.*?)\\1/g)].map((item) => item[2]);
-  const datasetLabel = datasetBody.match(/label\\s*=\\s*(['"])(.*?)\\1/i)?.[2] || "Values";
-  const valuesBody = datasetBody.match(/data\\s*=\\s*\\[([\\d.,\\s-]+)\\]/i)?.[1];
+  const labels = [...labelsBody.matchAll(/(['"])(.*?)\1/g)].map((item) => item[2]);
+  const datasetLabel = datasetBody.match(/label\s*(?:=|:)\s*(['"])(.*?)\1/i)?.[2] || "Values";
+  const valuesBody = datasetBody.match(/data\s*(?:=|:)\s*\[([\d.,\s-]+)\]/i)?.[1];
   if (!labels.length || valuesBody == null) return value;
   const values = valuesBody.split(",").map((item) => Number(item.trim()));
   if (values.length !== labels.length || values.some((item) => !Number.isFinite(item))) return value;
-  return "```chart\\n" + JSON.stringify({ type: "bar", title, labels, datasets: [{ label: datasetLabel, data: values }] }) + "\\n```";
+  const chart = { type: "bar", title, labels, datasets: [{ label: datasetLabel, data: values }] };
+  return "```chart\n" + JSON.stringify(chart) + "\n```";
 }
 function enhanceRichOutput(root) {
   root.querySelectorAll("pre > code").forEach((code) => {
