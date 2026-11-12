@@ -459,17 +459,25 @@ function createMessage(message, type, provider = "") {
   const li = document.createElement("li");
   li.className = `chat ${type}`;
   const wrapper = document.createElement("div");
-  const paragraph = document.createElement("p");
-  if (type === "incoming") { message = normalizeToolChartText(message); paragraph.innerHTML = safeMarkdown(message); enhanceRichOutput(paragraph); }
-  else paragraph.textContent = message;
-  wrapper.appendChild(paragraph);
+  wrapper.className = "message-shell";
+  const content = document.createElement("div");
+  content.className = "message-content";
+  if (type === "incoming") {
+    message = normalizeToolChartText(message);
+    content.innerHTML = safeMarkdown(message);
+    enhanceRichOutput(content);
+  } else {
+    content.textContent = message;
+  }
+  wrapper.appendChild(content);
 
   const meta = document.createElement("small");
+  meta.className = "message-meta";
   meta.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   if (provider) {
     const source = document.createElement("span");
     source.className = "message-provider";
-    source.textContent = `· ${provider === "wikipedia" ? "Wikipedia" : provider}`;
+    source.textContent = ` · ${provider === "wikipedia" ? "Wikipedia" : provider}`;
     meta.appendChild(source);
   }
   wrapper.appendChild(meta);
@@ -688,7 +696,7 @@ async function handleSend() {
 
   const loading = createMessage("NeuroX is thinking…", "incoming");
   loading.classList.add("is-loading");
-  const loadingParagraph = loading.querySelector("p");
+  const loadingParagraph = loading.querySelector(".message-content");
   let streamedText = "";
   try {
     const result = await streamFromBackend(message, (token) => {
