@@ -30,7 +30,7 @@ const suggestions = document.querySelectorAll(".suggestions button");
 const fileInput = $("#file-input");
 const fileBtn = $("#file-btn");
 const micBtn = $("#mic-btn");
-const container = $(".container");
+const container = $(".main-wrapper");
 let isProcessing = false;
 let chatHistory = [];
 
