@@ -38,6 +38,31 @@
   </header>
 
   <main class="main-wrapper">
+    <aside class="history-sidebar" id="historySidebar" aria-label="Chat history">
+      <button class="new-chat-btn" id="new-chat-btn" type="button"><i class="fa-solid fa-plus"></i> New chat</button>
+      <label class="history-search">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input id="history-search" type="search" placeholder="Search conversations" autocomplete="off" aria-label="Search conversations">
+        <kbd>⌘ K</kbd>
+      </label>
+      <div class="history-label"><span>YOUR CHATS</span><span id="history-count">0</span></div>
+      <nav class="history-items" id="history-items" aria-label="Saved conversations"></nav>
+      <div class="sidebar-bottom">
+        <div class="privacy-note"><i class="fa-solid fa-lock"></i><span><b>Private by design</b><small>Chats are stored in this browser.</small></span></div>
+      </div>
+    </aside>
+
+    <section class="chat-stage" aria-label="NeuroX AI chat workspace">
+      <div class="chat-stage-head">
+        <div class="chat-heading">
+          <p id="conversation-kicker">YOUR AI WORKSPACE</p>
+          <h1 id="conversation-title">New conversation</h1>
+        </div>
+        <div class="chat-head-actions">
+          <button class="icon-btn mobile-history-toggle" id="history-toggle" type="button" aria-label="Open chat history" title="Chat history"><i class="fa-solid fa-bars"></i></button>
+          <button class="export-btn" id="export-chat-btn" type="button" title="Export current conversation"><i class="fa-solid fa-download"></i><span>Export</span></button>
+        </div>
+      </div>
       <ul class="chat-list" aria-live="polite" aria-label="Conversation">
         <li class="welcome-panel" id="welcomePanel">
           <div class="welcome-orb"><img src="favicon.svg" alt=""></div>
@@ -53,7 +78,18 @@
       </ul>
 
       <div class="composer-wrap">
-        <div class="composer-tools"><label for="model-select"><i class="fa-solid fa-wand-magic-sparkles"></i> Model</label><select id="model-select" aria-label="Choose AI model"><option value="auto">Auto (recommended)</option></select><span class="format-hint">Markdown · Code · Terminal · Charts</span></div>
+        <div class="composer-tools">
+          <label for="mode-select"><i class="fa-solid fa-sliders"></i> Mode</label>
+          <select id="mode-select" aria-label="Choose assistant mode">
+            <option value="general">General Assistant</option>
+            <option value="coding">Coding Assistant</option>
+            <option value="study">Study Assistant</option>
+            <option value="cybersecurity">Cybersecurity Assistant</option>
+          </select>
+          <label for="model-select"><i class="fa-solid fa-wand-magic-sparkles"></i> Model</label>
+          <select id="model-select" aria-label="Choose AI model"><option value="auto">Auto (recommended)</option></select>
+          <span class="format-hint">Markdown · Code · Tables · Charts</span>
+        </div>
         <div class="input-area">
           <input type="file" id="file-input" hidden accept="image/*">
           <button id="file-btn" class="file-btn" aria-label="Attach an image" title="Attach image"><i class="fa-solid fa-paperclip"></i></button>
@@ -63,6 +99,7 @@
         </div>
         <div class="composer-meta"><span><i class="fa-solid fa-shield-halved"></i> Your conversations stay in your browser</span><span>Enter to send · Shift + Enter for new line</span></div>
       </div>
+    </section>
   </main>
 
   <footer class="footer"><span>© <span id="year"></span> NeuroX AI</span><span>Crafted with curiosity by <a href="https://github.com/abhinavcse-er" target="_blank" rel="noopener noreferrer">Abhinav Kumar <i class="fa-brands fa-github"></i></a></span></footer>
