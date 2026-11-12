@@ -72,7 +72,7 @@ async function openrouter(prompt) {
       "HTTP-Referer": process.env.APP_URL || "https://neuroaii.netlify.app",
       "X-Title": "NeuroX AI",
     },
-    { model, messages: [{ role: "user", content: prompt }], temperature: 0.7 },
+    { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, { role: "user", content: prompt }], temperature: 0.7 },
     "OpenRouter"
   );
   const text = data.choices?.[0]?.message?.content?.trim();
