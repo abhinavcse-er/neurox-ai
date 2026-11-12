@@ -21,21 +21,21 @@ Supported chart types: bar, line, pie, doughnut. Do not invent data; if values a
  * chart JSON block consumed by the frontend renderer.
  */
 function normalizeChartToolCall(reply) {
-  const match = String(reply).match(/<\\|tool_call_start\\|>\\s*\\[\\s*chart\\s*\\(([\\s\\S]*?)\\)\\s*\\]\\s*<\\|tool_call_end\\|>/i);
+  const match = String(reply).match(/<\|tool_call_start\|>\s*\[\s*chart\s*\(([\s\S]*?)\)\s*\]\s*<\|tool_call_end\|>/i);
   if (!match) return reply;
   const args = match[1];
-  const title = args.match(/title\\s*=\\s*(['\"])(.*?)\\1/i)?.[2] || "Chart";
-  const labelsBody = args.match(/labels\\s*=\\s*\\[([\\s\\S]*?)\\]/i)?.[1];
-  const datasetBody = args.match(/datasets\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*$/i)?.[1];
+  const title = args.match(/title\s*=\s*(['"])(.*?)\1/i)?.[2] || "Chart";
+  const labelsBody = args.match(/labels\s*=\s*\[([\s\S]*?)\]/i)?.[1];
+  const datasetBody = args.match(/datasets\s*=\s*\[([\s\S]*?)\]\s*$/i)?.[1];
   if (labelsBody == null || datasetBody == null) return reply;
-  const labels = [...labelsBody.matchAll(/(['\"])(.*?)\\1/g)].map((item) => item[2]);
-  const datasetLabel = datasetBody.match(/label\\s*=\\s*(['\"])(.*?)\\1/i)?.[2] || "Values";
-  const valuesBody = datasetBody.match(/data\\s*=\\s*\\[([\\d.,\\s-]+)\\]/i)?.[1];
+  const labels = [...labelsBody.matchAll(/(['"])(.*?)\1/g)].map((item) => item[2]);
+  const datasetLabel = datasetBody.match(/label\s*=\s*(['"])(.*?)\1/i)?.[2] || "Values";
+  const valuesBody = datasetBody.match(/data\s*=\s*\[([\d.,\s-]+)\]/i)?.[1];
   if (!labels.length || valuesBody == null) return reply;
   const values = valuesBody.split(",").map((value) => Number(value.trim())).filter(Number.isFinite);
   if (values.length !== labels.length) return reply;
   const chart = { type: "bar", title, labels, datasets: [{ label: datasetLabel, data: values }] };
-  return ["```chart", JSON.stringify(chart), "```"].join("\\n");
+  return ["```chart", JSON.stringify(chart), "```"].join("\n");
 }
 async function postJson(url, headers, body, provider) {
   const response = await fetch(url, {
