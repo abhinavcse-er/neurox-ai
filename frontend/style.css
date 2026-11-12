@@ -936,3 +936,22 @@ body.light .top-actions .icon-btn{
   .brand small{font-size:7px;letter-spacing:1px}
   .top-actions{gap:4px}
 }
+
+
+/* ===== Model selector and rich assistant output ===== */
+.composer-tools{max-width:850px;margin:0 auto 8px;display:flex;align-items:center;gap:9px;color:var(--nx-muted);font-size:11px}
+.composer-tools label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#model-select{max-width:230px;padding:7px 30px 7px 10px;border:1px solid var(--nx-line);border-radius:9px;background:#151d30;color:var(--nx-text);font:500 11px 'DM Sans',sans-serif;outline:none}
+#model-select:focus{border-color:var(--nx-accent)}
+.format-hint{margin-left:auto;font-size:10px;color:var(--nx-muted)}
+body.light #model-select{background:#fff;color:#182033}
+.chat.incoming p pre{position:relative;margin:12px 0;padding:15px 13px 13px;border:1px solid rgba(148,163,184,.18);border-radius:11px;background:#0b1120;white-space:pre;max-width:100%;overflow:auto}
+.chat.incoming p pre code{display:block;padding-top:18px;background:transparent;color:#e5eaf5;font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}
+.chat.incoming p pre[data-language]::before{content:attr(data-language);position:absolute;top:7px;left:12px;color:#9ba8c0;font:600 9px 'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.7px}
+.chat.incoming p pre .code-copy{position:absolute;top:5px;right:7px;padding:4px 7px;border:1px solid rgba(148,163,184,.2);border-radius:6px;background:#182238;color:#cbd5e1;font-size:9px;cursor:pointer}
+.chat.incoming p pre.terminal-code{border-color:rgba(74,222,128,.25);background:#080e0b}
+.chat.incoming p pre.terminal-code::before{content:'TERMINAL · ' attr(data-language);color:#86efac}
+.chat.incoming p .chart-card{display:block;width:100%;max-width:650px;margin:14px 0;padding:14px;border:1px solid var(--nx-line);border-radius:12px;background:rgba(7,12,24,.55)}
+.chat.incoming p .chart-card canvas{width:100%;max-height:340px}
+.chat.incoming p .chart-error{color:#fca5a5;font-size:11px}
+@media(max-width:700px){.composer-tools{padding:0 4px}.format-hint{display:none}#model-select{max-width:190px}.chat.incoming p .chart-card{padding:8px}}
