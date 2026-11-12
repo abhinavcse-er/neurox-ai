@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const BACKEND_URL = "https://neurox-ai-backend-0ow2.onrender.com";
+const BACKEND_URL = ""; // Use Netlify same-origin proxy to avoid browser CORS/CSP issues
 
 const $ = (selector) => document.querySelector(selector);
 const profileBtn = $("#profileBtn");
@@ -216,7 +216,7 @@ if ("webkitSpeechRecognition" in window && micBtn) {
 }
 
 async function sendToBackend(message) {
-  const response = await fetch(`${BACKEND_URL}/api/chat`, {
+  const response = await fetch(`${BACKEND_URL}/api/chat` || "/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
