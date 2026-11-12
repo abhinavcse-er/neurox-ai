@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: neurox-ai-backend
+    env: node
+    plan: starter          # Upgrade to Standard for 10k concurrent users
+    region: singapore      # Pick the region closest to your users
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false          # Set manually in Render dashboard (keep secret)
+      - key: ALLOWED_ORIGINS
+        sync: false          # e.g. https://neurox-ai.netlify.app

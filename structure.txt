@@ -1,0 +1,22 @@
+neurox-ai/
+├── frontend/          ← Deploy to Netlify
+│   ├── index.html
+│   ├── login.html
+│   ├── script.js
+│   ├── style.css
+│   ├── netlify.toml
+│   ├── _redirects
+│   └── .gitignore
+└── backend/           ← Deploy to Render
+    ├── package.json
+    ├── render.yaml
+    ├── .env.example
+    ├── .gitignore
+    └── src/
+        ├── server.js
+        ├── routes/
+        │   ├── chat.js
+        │   └── health.js
+        └── services/
+            ├── gemini.js
+            └── wikipedia.js

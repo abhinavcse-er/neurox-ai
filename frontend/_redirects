@@ -1,0 +1,11 @@
+# NeuroX AI — Netlify Redirects
+# All routes → index.html (SPA fallback)
+/*    /index.html   200
+
+# Proxy /api/* → Render backend so the browser never needs to know the backend URL
+# Replace the URL below with your actual Render service URL after deploying
+[[redirects]]
+  from = "/api/*"
+  to   = "https://neurox-ai-backend.onrender.com/api/:splat"
+  status = 200
+  force = true

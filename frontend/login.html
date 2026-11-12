@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroX AI | Auth</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Auth-specific styles */
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      overflow: hidden;
+      padding: 20px;
+    }
+
+    /* Animated blobs */
+    body::before, body::after {
+      content: "";
+      position: absolute;
+      width: 350px;
+      height: 350px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      filter: blur(120px);
+      animation: move 8s infinite alternate;
+    }
+
+    body::after {
+      right: 0;
+      bottom: 0;
+      animation-delay: 4s;
+    }
+
+    @keyframes move {
+      from { transform: translate(-40px,-40px); }
+      to   { transform: translate(40px,40px); }
+    }
+
+    .scene {
+      width: 100%;
+      max-width: 400px;
+      height: 520px;
+      perspective: 1000px;
+    }
+
+    .card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.8s;
+    }
+
+    .card.flip {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      box-shadow: 0 25px 45px rgba(0,0,0,0.3);
+      padding: 35px 25px;
+      color: #fff;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .card-face h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 26px;
+    }
+
+    input {
+      padding: 14px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 12px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #fff;
+      color: #333;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 15px;
+    }
+
+    button:hover {
+      background: #e0e0e0;
+      transform: translateY(-2px);
+    }
+
+    .switch {
+      text-align: center;
+      margin-top: 15px;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0.85;
+    }
+
+    .back {
+      transform: rotateY(180deg);
+    }
+
+    #authMsg {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+      min-height: 20px;
+      color: #fde68a;
+    }
+
+    @media(max-width:480px) {
+      .scene { height: 500px; }
+      .card-face { padding: 30px 20px; }
+      .card-face h2 { font-size: 22px; }
+      input, button { font-size: 14px; padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="card" id="card">
+
+    <!-- Login -->
+    <div class="card-face front">
+      <h2>Login</h2>
+      <input type="email" id="loginEmail" placeholder="Email">
+      <input type="password" id="loginPassword" placeholder="Password">
+      <button onclick="loginUser()">Login</button>
+      <div id="authMsg"></div>
+      <div class="switch" onclick="flipCard()">Don't have an account? Register</div>
+    </div>
+
+    <!-- Register -->
+    <div class="card-face back">
+      <h2>Register</h2>
+      <input type="text" id="regName" placeholder="Full Name">
+      <input type="email" id="regEmail" placeholder="Email">
+      <input type="password" id="regPassword" placeholder="Password">
+      <button onclick="registerUser()">Create Account</button>
+      <div id="authMsgReg"></div>
+      <div class="switch" onclick="flipCard()">Already have an account? Login</div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+// ⚠️  Replace storageBucket and messagingSenderId with your real values
+const firebaseConfig = {
+  apiKey:            import.meta.env?.VITE_FIREBASE_API_KEY            || "AIzaSyBfLn_JxmovMapRqby9RrdceaOc0Mmeo6Y",
+  authDomain:        import.meta.env?.VITE_FIREBASE_AUTH_DOMAIN        || "eurox-ai-2cd91.firebaseapp.com",
+  projectId:         import.meta.env?.VITE_FIREBASE_PROJECT_ID         || "neurox-ai-2cd91",
+  storageBucket:     import.meta.env?.VITE_FIREBASE_STORAGE_BUCKET     || "neurox-ai-2cd91.appspot.com",
+  messagingSenderId: import.meta.env?.VITE_FIREBASE_MESSAGING_SENDER_ID|| "242667828902",
+  appId:             import.meta.env?.VITE_FIREBASE_APP_ID             || "1:242667828902:web:d4be4ca6e8c2ec75726667"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+function showMsg(id, msg, isError = false) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.textContent = msg;
+    el.style.color = isError ? "#fca5a5" : "#6ee7b7";
+  }
+}
+
+window.flipCard = () => document.getElementById("card").classList.toggle("flip");
+
+window.registerUser = async () => {
+  const email    = document.getElementById("regEmail").value.trim();
+  const password = document.getElementById("regPassword").value;
+
+  if (password.length < 6) {
+    showMsg("authMsgReg", "Password must be at least 6 characters.", true);
+    return;
+  }
+
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    showMsg("authMsgReg", "✅ Registration successful! Redirecting…");
+    setTimeout(() => window.location.href = "index.html", 1500);
+  } catch (error) {
+    showMsg("authMsgReg", error.message, true);
+  }
+};
+
+window.loginUser = async () => {
+  const email    = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    showMsg("authMsg", "✅ Login successful! Redirecting…");
+    setTimeout(() => window.location.href = "index.html", 1200);
+  } catch (error) {
+    showMsg("authMsg", error.message, true);
+  }
+};
+</script>
+
+</body>
+</html>
