@@ -964,3 +964,169 @@ body.light #model-select{background:#fff;color:#182033}
 .chat.incoming p .chart-card strong{display:block;margin:0 0 10px;color:var(--nx-text);font-size:13px}
 .chat.incoming p .chart-card canvas{display:block!important;width:100%!important;height:270px!important;max-height:none!important}
 body.light .chat.incoming p .chart-card{background:#fff}
+
+
+/* ===== Responsive hardening: desktop, tablet, mobile and small-height screens ===== */
+:root{
+  --nx-content-width:1120px;
+  --nx-chart-height:clamp(230px,34vh,330px);
+}
+html{
+  width:100%;
+  min-width:320px;
+  overflow-x:hidden;
+  scroll-behavior:smooth;
+}
+body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+.top-bar,
+.main-wrapper,
+.footer{
+  min-width:0;
+}
+.brand{min-width:0;flex:0 1 auto}
+.brand>span{min-width:0}
+.top-actions{min-width:0;flex:0 0 auto}
+.main-wrapper>.chat-list{
+  width:100%;
+  min-width:0;
+  overscroll-behavior-y:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.chat{min-width:0;max-width:100%}
+.chat>div{min-width:0;max-width:100%}
+.chat.incoming:has(.chart-card){
+  display:block;
+  width:100%;
+  max-width:100%;
+}
+.chat.incoming:has(.chart-card)>div,
+.chat.incoming:has(.chart-card)>div>p{
+  width:100%;
+  max-width:100%;
+}
+.chat.incoming .chart-card{
+  width:100%;
+  max-width:min(100%,780px);
+  min-width:0;
+  height:var(--nx-chart-height);
+  min-height:220px;
+  margin:12px 0;
+  padding:clamp(9px,2vw,16px);
+  overflow:hidden;
+}
+.chat.incoming .chart-card canvas{
+  display:block;
+  width:100%!important;
+  height:calc(100% - 28px)!important;
+  min-height:170px;
+  max-height:none!important;
+}
+.chat.incoming p,
+.chat.outgoing p{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.chat.incoming pre,
+.chat.incoming table{
+  max-width:100%;
+}
+.chat.incoming pre{
+  white-space:pre;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+}
+.chat.incoming p img,
+.chat.incoming svg{
+  max-width:100%;
+}
+.composer-wrap,
+.composer-tools,
+.input-area,
+.composer-meta{min-width:0}
+#model-select{min-width:0}
+.footer span{min-width:0}
+.footer a{overflow-wrap:anywhere}
+
+@media (min-width:1400px){
+  .main-wrapper>.chat-list{padding-left:clamp(100px,12vw,190px);padding-right:clamp(100px,12vw,190px)}
+  .chat.incoming .chart-card{max-width:900px}
+}
+@media (max-width:1024px){
+  .main-wrapper>.chat-list{padding-left:clamp(16px,3vw,38px);padding-right:clamp(16px,3vw,38px)}
+  .chat.incoming .chart-card{max-width:100%}
+}
+@media (max-width:700px){
+  .top-bar{gap:8px}
+  .main-wrapper>.chat-list{padding:13px 12px}
+  .chat.incoming:has(.chart-card)>div,
+  .chat.incoming:has(.chart-card)>div>p{width:100%;max-width:100%}
+  .chat.incoming .chart-card{
+    height:clamp(230px,38vh,290px);
+    min-height:220px;
+    margin:10px 0;
+    padding:9px;
+  }
+  .chat.incoming .chart-card canvas{
+    height:calc(100% - 26px)!important;
+    min-height:180px;
+  }
+  .chat.incoming p pre{max-width:100%;font-size:12px}
+  .chat.incoming p table{font-size:12px}
+  .composer-wrap{padding-left:max(9px,env(safe-area-inset-left));padding-right:max(9px,env(safe-area-inset-right))}
+  .input-area{width:100%}
+  .footer{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+}
+@media (max-width:420px){
+  .top-bar{padding-left:10px;padding-right:10px}
+  .brand{gap:6px;font-size:15px}
+  .brand-mark{width:27px;height:27px}
+  .brand small{font-size:6px;letter-spacing:.8px}
+  .top-actions{gap:3px}
+  .top-actions .icon-btn{width:30px;height:30px;flex-basis:30px}
+  .login-btn{padding:7px 8px;font-size:10px}
+  .main-wrapper>.chat-list{padding-left:9px;padding-right:9px}
+  .chat.incoming p,.chat.outgoing p{max-width:96%;padding:10px 11px}
+  .chat.incoming:has(.chart-card)>div,
+  .chat.incoming:has(.chart-card)>div>p{max-width:100%}
+  .chat.incoming .chart-card{height:245px;min-height:215px;padding:7px}
+  .chat.incoming .chart-card canvas{min-height:175px}
+  .composer-tools{gap:6px;font-size:10px}
+  #model-select{max-width:min(62vw,190px);padding:7px 22px 7px 8px}
+  .footer{gap:6px;font-size:8px}
+}
+@media (max-width:350px){
+  .brand small{display:none}
+  .top-actions .icon-btn{width:28px;height:28px;flex-basis:28px}
+  .top-actions .login-btn{padding:6px;font-size:9px}
+  .composer-meta span:first-child{max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .footer span:last-child{max-width:58%;text-align:right}
+}
+@media (max-height:600px) and (min-width:701px){
+  .top-bar{flex-basis:60px;min-height:60px}
+  .main-wrapper>.chat-list{padding-top:12px;padding-bottom:12px}
+  .main-wrapper>.composer-wrap{padding-top:8px;padding-bottom:8px}
+  .chat.incoming .chart-card{height:220px;min-height:190px}
+  .chat.incoming .chart-card canvas{min-height:150px}
+  .footer{min-height:34px;padding-top:6px;padding-bottom:6px}
+}
+@media (orientation:landscape) and (max-width:900px) and (max-height:500px){
+  .top-bar{flex-basis:48px;min-height:48px;height:48px}
+  .main-wrapper>.chat-list{padding-top:8px;padding-bottom:8px}
+  .welcome-panel{padding:4px 0}
+  .welcome-orb{width:42px;height:42px;margin-bottom:8px}
+  .welcome-orb img{width:32px}
+  .welcome-panel h2{font-size:25px}
+  .welcome-copy{margin:7px auto 10px}
+  .suggestions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .suggestions button{padding:7px}
+  .composer-wrap{padding-top:6px;padding-bottom:6px}
+  .composer-meta{display:none}
+  .footer{min-height:28px;padding-top:5px;padding-bottom:5px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
