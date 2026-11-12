@@ -30,27 +30,34 @@ const fileInput = $("#file-input");
 const fileBtn = $("#file-btn");
 const micBtn = $("#mic-btn");
 const modelSelect = $("#model-select");
+const modeSelect = $("#mode-select");
 const container = $(".main-wrapper");
+const historyItems = $("#history-items");
+const historySearch = $("#history-search");
+const historySidebar = $("#historySidebar");
+const conversationTitle = $("#conversation-title");
+const conversationKicker = $("#conversation-kicker");
+const historyCount = $("#history-count");
 let isProcessing = false;
 let chatHistory = [];
+let conversations = [];
+let activeConversationId = null;
+let historyOwner = "guest";
 let chartInstances = [];
-
-try {
-  const stored = JSON.parse(localStorage.getItem("chat-history") || "[]");
-  chatHistory = Array.isArray(stored) ? stored.slice(-100) : [];
-} catch { chatHistory = []; }
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
     if (userEmailEl) userEmailEl.textContent = user.email || "";
     if (profileBtn) {
-      profileBtn.textContent = (user.email || "U").charAt(0).toUpperCase();
+      profileBtn.textContent = (user.displayName || user.email || "U").charAt(0).toUpperCase();
       profileBtn.style.display = "flex";
     }
     if (loginBtn) loginBtn.style.display = "none";
+    loadConversations(user.uid || "guest");
   } else {
     if (profileBtn) profileBtn.style.display = "none";
     if (loginBtn) loginBtn.style.display = "inline-flex";
+    loadConversations("guest");
   }
 });
 
@@ -64,15 +71,153 @@ logoutBtn?.addEventListener("click", async () => {
   catch (error) { console.error("Logout failed:", error); }
 });
 
+function makeConversationId() {
+  return window.crypto?.randomUUID?.() || `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+function activeConversation() {
+  return conversations.find((item) => item.id === activeConversationId) || null;
+}
+function setConversationHeading(conversation) {
+  if (conversationTitle) conversationTitle.textContent = conversation?.title || "New conversation";
+  const modes = { general: "GENERAL ASSISTANT", coding: "CODING ASSISTANT", study: "STUDY ASSISTANT", cybersecurity: "CYBERSECURITY ASSISTANT" };
+  if (conversationKicker) conversationKicker.textContent = modes[conversation?.mode] || "YOUR AI WORKSPACE";
+}
+function createConversation(messages = [], mode = "general") {
+  return {
+    id: makeConversationId(),
+    title: "New conversation",
+    mode,
+    updatedAt: Date.now(),
+    messages: Array.isArray(messages) ? messages.slice(-100) : []
+  };
+}
+function persistConversations() {
+  conversations = conversations
+    .filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+    .slice(0, 100);
+  try {
+    localStorage.setItem(`neurox-conversations-v1:${historyOwner}`, JSON.stringify(conversations));
+  } catch (error) {
+    console.warn("Could not persist chat history in this browser:", error);
+  }
+}
+function renderHistory() {
+  if (!historyItems) return;
+  const query = (historySearch?.value || "").trim().toLowerCase();
+  const matching = conversations.filter((item) => {
+    if (!query) return true;
+    const titleMatches = String(item.title || "").toLowerCase().includes(query);
+    const messageMatches = item.messages.some((message) => String(message.text || "").toLowerCase().includes(query));
+    return titleMatches || messageMatches;
+  });
+  historyItems.replaceChildren();
+  if (historyCount) historyCount.textContent = String(conversations.length);
+  if (!matching.length) {
+    const empty = document.createElement("p");
+    empty.className = "history-empty";
+    empty.textContent = query ? "No conversations match your search." : "Your saved conversations will appear here.";
+    historyItems.appendChild(empty);
+    return;
+  }
+  matching.forEach((conversation) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "history-item" + (conversation.id === activeConversationId ? " active" : "");
+    button.title = conversation.title || "New conversation";
+    const icon = document.createElement("i");
+    icon.className = "fa-regular fa-message";
+    icon.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.textContent = conversation.title || "New conversation";
+    button.append(icon, label);
+    button.addEventListener("click", () => openConversation(conversation.id));
+    historyItems.appendChild(button);
+  });
+}
+function renderActiveConversation() {
+  if (!chatList) return;
+  const conversation = activeConversation();
+  chatHistory = Array.isArray(conversation?.messages) ? conversation.messages.slice(-100) : [];
+  if (modeSelect) modeSelect.value = ["general", "coding", "study", "cybersecurity"].includes(conversation?.mode) ? conversation.mode : "general";
+  setConversationHeading(conversation);
+  chatList.replaceChildren();
+  if (!chatHistory.length) {
+    chatList.appendChild(createWelcomePanel());
+  } else {
+    chatHistory.forEach((item) => {
+      if (item && typeof item.text === "string" && ["incoming", "outgoing"].includes(item.type)) {
+        createMessage(item.text, item.type, item.provider || "");
+      }
+    });
+  }
+  renderHistory();
+}
+function loadConversations(ownerId) {
+  historyOwner = String(ownerId || "guest");
+  try {
+    const stored = JSON.parse(localStorage.getItem(`neurox-conversations-v1:${historyOwner}`) || "[]");
+    conversations = Array.isArray(stored) ? stored.filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages)).slice(0, 100) : [];
+  } catch {
+    conversations = [];
+  }
+
+  // Migrate the older single-chat browser history without discarding it.
+  if (!conversations.length) {
+    try {
+      const legacy = JSON.parse(localStorage.getItem("chat-history") || "[]");
+      if (Array.isArray(legacy) && legacy.some((item) => item && typeof item.text === "string")) {
+        const conversation = createConversation(legacy.filter((item) => item && typeof item.text === "string" && ["incoming", "outgoing"].includes(item.type)));
+        const firstPrompt = conversation.messages.find((item) => item.type === "outgoing")?.text || "";
+        conversation.title = firstPrompt.slice(0, 42) || "Previous conversation";
+        conversations = [conversation];
+        localStorage.removeItem("chat-history");
+      }
+    } catch { /* Ignore invalid legacy data and start a clean history. */ }
+  }
+  if (!conversations.length) conversations = [createConversation([], "general")];
+  activeConversationId = conversations[0].id;
+  persistConversations();
+  renderActiveConversation();
+}
 function saveChats() {
+  const conversation = activeConversation();
+  if (!conversation) return;
   chatHistory = chatHistory.slice(-100);
-  try { localStorage.setItem("chat-history", JSON.stringify(chatHistory)); }
-  catch (error) { console.warn("Could not save chat history:", error); }
+  conversation.messages = chatHistory;
+  conversation.updatedAt = Date.now();
+  const firstPrompt = chatHistory.find((item) => item.type === "outgoing")?.text || "";
+  if (firstPrompt) conversation.title = firstPrompt.replace(/\s+/g, " ").trim().slice(0, 42) || "New conversation";
+  conversations = [conversation, ...conversations.filter((item) => item.id !== conversation.id)];
+  setConversationHeading(conversation);
+  persistConversations();
+  renderHistory();
+}
+function openConversation(id) {
+  if (!conversations.some((item) => item.id === id)) return;
+  activeConversationId = id;
+  renderActiveConversation();
+  historySidebar?.classList.remove("is-open");
+}
+function startNewConversation() {
+  const conversation = createConversation([], modeSelect?.value || "general");
+  conversations.unshift(conversation);
+  activeConversationId = conversation.id;
+  persistConversations();
+  renderActiveConversation();
+  textarea?.focus();
 }
 
+
 function safeMarkdown(value) {
-  const html = window.marked ? marked.parse(value, { gfm: true, breaks: false }) : String(value);
-  return window.DOMPurify ? DOMPurify.sanitize(html) : document.createTextNode(value).textContent;
+  const source = String(value ?? "");
+  if (window.marked && window.DOMPurify) {
+    return DOMPurify.sanitize(marked.parse(source, { gfm: true, breaks: false }));
+  }
+  const escaped = source.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  })[character]);
+  return escaped.replace(/\n/g, "<br>");
 }
 
 function normalizeChartConfig(candidate) {
@@ -347,12 +492,7 @@ function createMessage(message, type, provider = "") {
 function hideWelcome() {
   $("#welcomePanel")?.remove();
 }
-chatHistory.forEach((item) => {
-  if (item && typeof item.text === "string" && ["incoming", "outgoing"].includes(item.type)) {
-    hideWelcome();
-    createMessage(item.text, item.type, item.provider || "");
-  }
-});
+
 
 function applyTheme(theme) {
   const light = theme === "light";
@@ -368,11 +508,15 @@ themeBtn?.addEventListener("click", () => {
   try { localStorage.setItem("neurox-theme", nextTheme); } catch {}
 });
 deleteBtn?.addEventListener("click", () => {
-  if (!confirm("Clear this conversation from this browser?")) return;
+  if (!confirm("Clear messages in this conversation?")) return;
+  const conversation = activeConversation();
+  if (!conversation) return;
+  conversation.messages = [];
+  conversation.title = "New conversation";
+  conversation.updatedAt = Date.now();
   chatHistory = [];
-  localStorage.removeItem("chat-history");
-  chatList.innerHTML = "";
-  chatList.appendChild(createWelcomePanel());
+  persistConversations();
+  renderActiveConversation();
 });
 
 function createWelcomePanel() {
@@ -446,17 +590,78 @@ if ("webkitSpeechRecognition" in window && micBtn) {
   micBtn.style.opacity = ".4";
 }
 
-async function sendToBackend(message) {
-  const response = await fetch("/api/chat", {
+async function streamFromBackend(message, onToken = () => {}) {
+  const response = await fetch("/api/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, provider: modelSelect?.value || "auto", history: chatHistory.slice(0, -1).filter((item) => item && typeof item.text === "string" && ["incoming", "outgoing"].includes(item.type)).slice(-20).map((item) => ({ role: item.type === "outgoing" ? "user" : "assistant", content: item.text.slice(0, 4000) })) }),
+    body: JSON.stringify({
+      message,
+      provider: modelSelect?.value || "auto",
+      mode: modeSelect?.value || "general",
+      history: chatHistory.slice(0, -1)
+        .filter((item) => item && typeof item.text === "string" && ["incoming", "outgoing"].includes(item.type))
+        .slice(-20)
+        .map((item) => ({ role: item.type === "outgoing" ? "user" : "assistant", content: item.text.slice(0, 4000) }))
+    }),
     signal: AbortSignal.timeout(65000),
   });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
-  if (typeof data.reply !== "string" || !data.reply.trim()) throw new Error("The AI returned an empty response.");
-  return data;
+
+  if (!response.ok) {
+    const raw = await response.text().catch(() => "");
+    let messageText = raw;
+    try { messageText = JSON.parse(raw)?.error || raw; } catch {}
+    throw new Error(messageText || `Request failed (${response.status})`);
+  }
+  if (!response.body?.getReader) throw new Error("Streaming is not supported by this browser. Please refresh and try again.");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let reply = "";
+  let provider = "";
+  let streamError = null;
+
+  const dispatchBlock = (block) => {
+    let eventName = "message";
+    const dataLines = [];
+    block.split(/\r?\n/).forEach((line) => {
+      if (line.startsWith("event:")) eventName = line.slice(6).trim();
+      else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+    });
+    if (!dataLines.length) return;
+    let data;
+    try { data = JSON.parse(dataLines.join("\n")); }
+    catch { throw new Error("The server sent an invalid streaming event."); }
+
+    if (eventName === "token") {
+      if (typeof data.token !== "string") return;
+      reply += data.token;
+      onToken(data.token);
+    } else if (eventName === "done") {
+      provider = typeof data.provider === "string" ? data.provider : "";
+    } else if (eventName === "error") {
+      throw new Error(data.error || "The AI stream was interrupted.");
+    }
+  };
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() || "";
+      blocks.forEach(dispatchBlock);
+      if (done) break;
+    }
+    if (buffer.trim()) dispatchBlock(buffer.trim());
+  } catch (error) {
+    streamError = error;
+  } finally {
+    try { reader.releaseLock(); } catch {}
+  }
+  if (streamError) throw streamError;
+  if (!reply.trim()) throw new Error("The AI returned an empty response.");
+  return { reply, provider };
 }
 
 async function handleSend() {
@@ -465,7 +670,10 @@ async function handleSend() {
   isProcessing = true;
   hideWelcome();
   createMessage(message, "outgoing");
-  chatHistory.push({ text: message, type: "outgoing" });
+  chatHistory.push({ text: message, type: "outgoing", mode: modeSelect?.value || "general" });
+  const selectedMode = modeSelect?.value || "general";
+  const conversation = activeConversation();
+  if (conversation) conversation.mode = selectedMode;
   saveChats();
   textarea.value = "";
   textarea.style.height = "auto";
@@ -474,16 +682,27 @@ async function handleSend() {
 
   const loading = createMessage("NeuroX is thinking…", "incoming");
   loading.classList.add("is-loading");
+  const loadingParagraph = loading.querySelector("p");
+  let streamedText = "";
   try {
-    const result = await sendToBackend(message);
+    const result = await streamFromBackend(message, (token) => {
+      streamedText += token;
+      if (loadingParagraph) loadingParagraph.textContent = streamedText;
+      chatList.scrollTop = chatList.scrollHeight;
+    });
     loading.remove();
     createMessage(result.reply, "incoming", result.provider || "");
-    chatHistory.push({ text: result.reply, type: "incoming", provider: result.provider || "" });
+    chatHistory.push({ text: result.reply, type: "incoming", provider: result.provider || "", mode: selectedMode });
     saveChats();
   } catch (error) {
     loading.remove();
-    const retry = createMessage(`I couldn't get a response just now. ${error.message} Please try again.`, "incoming");
-    retry.classList.add("error-message");
+    if (streamedText.trim()) {
+      createMessage(streamedText, "incoming");
+      chatHistory.push({ text: streamedText, type: "incoming", mode: selectedMode, partial: true });
+      saveChats();
+    }
+    const failure = createMessage(`I couldn't complete the response. ${error.message} Please retry or switch the provider.`, "incoming");
+    failure.classList.add("error-message");
   } finally {
     isProcessing = false;
     sendBtn.disabled = false;
@@ -507,5 +726,47 @@ suggestions.forEach((button) => button.addEventListener("click", () => {
   textarea.value = button.innerText.replace(/\s+/g, " ").trim();
   handleSend();
 }));
+
+newChatBtn?.addEventListener("click", startNewConversation);
+historySearch?.addEventListener("input", renderHistory);
+modeSelect?.addEventListener("change", () => {
+  const conversation = activeConversation();
+  if (!conversation) return;
+  conversation.mode = modeSelect.value;
+  conversation.updatedAt = Date.now();
+  setConversationHeading(conversation);
+  persistConversations();
+  renderHistory();
+});
+$("#history-toggle")?.addEventListener("click", () => historySidebar?.classList.toggle("is-open"));
+$("#export-chat-btn")?.addEventListener("click", () => {
+  const conversation = activeConversation();
+  if (!conversation || !conversation.messages.length) {
+    alert("There are no messages to export yet.");
+    return;
+  }
+  const markdown = [
+    `# ${conversation.title || "NeuroX AI conversation"}`,
+    `_Exported ${new Date().toLocaleString()} · Mode: ${conversation.mode || "general"}_`,
+    "",
+    ...conversation.messages.map((item) => `## ${item.type === "outgoing" ? "You" : "NeuroX AI"}\n\n${item.text}\n`)
+  ].join("\n");
+  const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${(conversation.title || "neurox-chat").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48) || "neurox-chat"}.md`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+});
+document.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    historySearch?.focus();
+  }
+});
+
 const year = $("#year");
 if (year) year.textContent = new Date().getFullYear();
