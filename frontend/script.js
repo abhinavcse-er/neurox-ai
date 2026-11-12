@@ -458,6 +458,18 @@ modelSelect?.addEventListener("change", () => {
 function createMessage(message, type, provider = "") {
   const li = document.createElement("li");
   li.className = `chat ${type}`;
+  if (type === "incoming") {
+    const avatar = document.createElement("span");
+    avatar.className = "message-avatar";
+    avatar.setAttribute("aria-label", "NeuroX AI");
+    avatar.title = "NeuroX AI";
+    const avatarIcon = document.createElement("i");
+    avatarIcon.className = "fa-solid fa-sparkles";
+    avatarIcon.setAttribute("aria-hidden", "true");
+    avatar.appendChild(avatarIcon);
+    li.appendChild(avatar);
+  }
+
   const wrapper = document.createElement("div");
   wrapper.className = "message-shell";
   const content = document.createElement("div");
