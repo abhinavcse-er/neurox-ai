@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const BACKEND_URL = "https://neurox-ai-backend.onrender.com";
+const BACKEND_URL = "https://neurox-ai-backend-0ow2.onrender.com";
 
 const $ = (selector) => document.querySelector(selector);
 const profileBtn = $("#profileBtn");
