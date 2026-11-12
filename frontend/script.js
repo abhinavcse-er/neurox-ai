@@ -31,6 +31,7 @@ const fileBtn = $("#file-btn");
 const micBtn = $("#mic-btn");
 const modelSelect = $("#model-select");
 const modeSelect = $("#mode-select");
+const newChatBtn = $("#new-chat-btn");
 const container = $(".main-wrapper");
 const historyItems = $("#history-items");
 const historySearch = $("#history-search");
