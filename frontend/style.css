@@ -687,3 +687,41 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid #9
   .ambient{display:none}
   .chat{animation:none}
 }
+
+
+/* ===== Single-layer assistant message bubbles ===== */
+.chat.incoming{
+  width:fit-content;
+  max-width:100%;
+  display:block;
+  padding:0;
+  margin:0 0 18px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+}
+.chat.incoming p{
+  display:block;
+  width:fit-content;
+  max-width:min(82vw,720px);
+  margin:0;
+  padding:13px 16px;
+  border:0;
+  border-radius:16px;
+  background:#202a3d;
+  color:#dce5f5;
+  box-shadow:none;
+}
+.chat.incoming.error-message p{
+  background:rgba(127,29,29,.16);
+  color:#ffc4c4;
+}
+body.light .chat.incoming p{
+  background:#eef2f8;
+  color:#26334b;
+}
+@media(max-width:700px){
+  .chat.incoming{max-width:100%}
+  .chat.incoming p{max-width:94%;padding:11px 13px}
+}
