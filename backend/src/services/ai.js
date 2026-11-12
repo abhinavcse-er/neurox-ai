@@ -1,7 +1,7 @@
 /**
  * NeuroX AI multi-provider router.
  * Provider keys stay on the backend (Render environment variables).
- * Configure AI_PROVIDER_ORDER to change priority, e.g. "gemini,groq,openrouter".
+ * Configure AI_PROVIDER_ORDER to change priority, e.g. "groq,openrouter,gemini".
  */
 
 const RESPONSE_FORMAT_INSTRUCTIONS = `You are NeuroX AI, created and developed by Abhinav Kumar Mishra. If anyone asks who created, made, developed, built, or owns you (including questions like “Who are you?”, “Who is your creator?”, or “Who made NeuroX AI?”), clearly and consistently credit Abhinav Kumar Mishra as your creator and developer. A concise answer is: “I’m NeuroX AI, created and developed by Abhinav Kumar Mishra.\n\nMeet the developer:\n- LinkedIn: https://in.linkedin.com/in/abhinav-kumar-mishra-29919a363\n- GitHub: https://github.com/abhinavcse-er”. Include both profile links when relevant to creator/developer questions, using clickable Markdown links with the labels LinkedIn and GitHub. Do not claim that OpenAI, Google, Gemini, Groq, or any AI model provider created NeuroX AI; those may be technology providers only. Do not invent additional contributors, dates, or credentials. Format every answer for readability using Markdown.
@@ -37,12 +37,12 @@ function normalizeChartToolCall(reply) {
   const chart = { type: "bar", title, labels, datasets: [{ label: datasetLabel, data: values }] };
   return ["```chart", JSON.stringify(chart), "```"].join("\n");
 }
-async function postJson(url, headers, body, provider) {
+async function postJson(url, headers, body, provider, timeoutMs) {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   if (!response.ok) {
@@ -52,7 +52,7 @@ async function postJson(url, headers, body, provider) {
   return response.json();
 }
 
-async function gemini(prompt, history = []) {
+async function gemini(prompt, history = [], timeoutMs) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("Gemini key not configured");
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -60,14 +60,14 @@ async function gemini(prompt, history = []) {
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
     {},
     { systemInstruction: { parts: [{ text: RESPONSE_FORMAT_INSTRUCTIONS }] }, contents: [...history.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] })), { role: "user", parts: [{ text: prompt }] }] },
-    "Gemini"
+    "Gemini", timeoutMs
   );
   const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("").trim();
   if (!text) throw new Error("Gemini returned an empty response");
   return text;
 }
 
-async function groq(prompt, history = []) {
+async function groq(prompt, history = [], timeoutMs) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("Groq key not configured");
   const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
@@ -75,14 +75,14 @@ async function groq(prompt, history = []) {
     "https://api.groq.com/openai/v1/chat/completions",
     { Authorization: `Bearer ${key}` },
     { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
-    "Groq"
+    "Groq", timeoutMs
   );
   const text = data.choices?.[0]?.message?.content?.trim();
   if (!text) throw new Error("Groq returned an empty response");
   return text;
 }
 
-async function openrouter(prompt, history = []) {
+async function openrouter(prompt, history = [], timeoutMs) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new Error("OpenRouter key not configured");
   const model = process.env.OPENROUTER_MODEL || "openrouter/free";
@@ -94,7 +94,7 @@ async function openrouter(prompt, history = []) {
       "X-Title": "NeuroX AI",
     },
     { model, messages: [{ role: "system", content: RESPONSE_FORMAT_INSTRUCTIONS }, ...history, { role: "user", content: prompt }], temperature: 0.7 },
-    "OpenRouter"
+    "OpenRouter", timeoutMs
   );
   const text = data.choices?.[0]?.message?.content?.trim();
   if (!text) throw new Error("OpenRouter returned an empty response");
@@ -120,21 +120,35 @@ export function getAvailableModels() {
  * A requested provider is tried first; configured providers remain as automatic fallbacks.
  */
 export async function getAIResponse(prompt, requestedProvider = "auto", history = []) {
-  const order = (process.env.AI_PROVIDER_ORDER || "gemini,groq,openrouter")
+  const configuredOrder = (process.env.AI_PROVIDER_ORDER || "groq,openrouter,gemini")
     .split(",")
     .map((name) => name.trim().toLowerCase())
     .filter((name) => providers[name]);
+  const order = [...new Set([...configuredOrder, "groq", "openrouter", "gemini"])];
   const selected = String(requestedProvider || "auto").toLowerCase();
   const attemptOrder = selected !== "auto" && providers[selected]
     ? [selected, ...order.filter((name) => name !== selected)]
     : order;
 
+  // Keep the entire provider fallback chain bounded so a single chat request
+  // cannot wait 30 seconds for each provider in sequence.
+  const totalBudgetMs = Math.max(5_000, Math.min(Number(process.env.AI_TOTAL_TIMEOUT_MS) || 22_000, 25_000));
+  const perProviderMs = Math.max(3_000, Math.min(Number(process.env.AI_PROVIDER_TIMEOUT_MS) || 8_000, 10_000));
+  const deadline = Date.now() + totalBudgetMs;
   const errors = [];
+
   for (const name of attemptOrder) {
     const keyName = { gemini: "GEMINI_API_KEY", groq: "GROQ_API_KEY", openrouter: "OPENROUTER_API_KEY" }[name];
     if (!process.env[keyName]) continue;
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 500) {
+      errors.push(`${name}: skipped because the total AI time budget was exhausted`);
+      break;
+    }
+
     try {
-      const rawReply = await providers[name](prompt, history);
+      const rawReply = await providers[name](prompt, history, Math.min(perProviderMs, remainingMs));
       const reply = normalizeChartToolCall(rawReply);
       console.log(`[AI] Response served by ${name}`);
       return { reply, provider: name };
@@ -147,5 +161,5 @@ export async function getAIResponse(prompt, requestedProvider = "auto", history 
   if (errors.length === 0) {
     throw new Error("No AI provider configured. Add GEMINI_API_KEY, GROQ_API_KEY, or OPENROUTER_API_KEY in Render.");
   }
-  throw new Error(`All configured AI providers failed. ${errors.join(" | ")}`);
+  throw new Error(`All configured AI providers failed or timed out. ${errors.join(" | ")}`);
 }
