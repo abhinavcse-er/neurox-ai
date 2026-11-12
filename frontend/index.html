@@ -15,6 +15,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.7/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -50,6 +51,7 @@
       </ul>
 
       <div class="composer-wrap">
+        <div class="composer-tools"><label for="model-select"><i class="fa-solid fa-wand-magic-sparkles"></i> Model</label><select id="model-select" aria-label="Choose AI model"><option value="auto">Auto (recommended)</option></select><span class="format-hint">Markdown · Code · Terminal · Charts</span></div>
         <div class="input-area">
           <input type="file" id="file-input" hidden accept="image/*">
           <button id="file-btn" class="file-btn" aria-label="Attach an image" title="Attach image"><i class="fa-solid fa-paperclip"></i></button>
