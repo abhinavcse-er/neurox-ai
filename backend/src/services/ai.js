@@ -74,14 +74,30 @@ const providers = { gemini, groq, openrouter };
  * Try configured providers in priority order. Missing keys are skipped;
  * quota, network and provider errors automatically move to the next provider.
  */
-export async function getAIResponse(prompt) {
+export function getAvailableModels() {
+  const configs = [
+    { id: "gemini", label: "Gemini 2.5 Flash", model: process.env.GEMINI_MODEL || "gemini-2.5-flash", key: "GEMINI_API_KEY" },
+    { id: "groq", label: "Groq · Llama 3.3 70B", model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile", key: "GROQ_API_KEY" },
+    { id: "openrouter", label: "OpenRouter · Free", model: process.env.OPENROUTER_MODEL || "openrouter/free", key: "OPENROUTER_API_KEY" },
+  ];
+  return [{ id: "auto", label: "Auto (recommended)" }, ...configs.filter((item) => process.env[item.key])];
+}
+
+/**
+ * A requested provider is tried first; configured providers remain as automatic fallbacks.
+ */
+export async function getAIResponse(prompt, requestedProvider = "auto") {
   const order = (process.env.AI_PROVIDER_ORDER || "gemini,groq,openrouter")
     .split(",")
     .map((name) => name.trim().toLowerCase())
     .filter((name) => providers[name]);
+  const selected = String(requestedProvider || "auto").toLowerCase();
+  const attemptOrder = selected !== "auto" && providers[selected]
+    ? [selected, ...order.filter((name) => name !== selected)]
+    : order;
 
   const errors = [];
-  for (const name of order) {
+  for (const name of attemptOrder) {
     const keyName = { gemini: "GEMINI_API_KEY", groq: "GROQ_API_KEY", openrouter: "OPENROUTER_API_KEY" }[name];
     if (!process.env[keyName]) continue;
     try {
