@@ -14,5 +14,11 @@ services:
         value: production
       - key: GEMINI_API_KEY
         sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: AI_PROVIDER_ORDER
+        value: gemini,groq,openrouter
       - key: ALLOWED_ORIGINS
         value: https://neuroaii.netlify.app
