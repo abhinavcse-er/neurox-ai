@@ -75,10 +75,26 @@ function safeMarkdown(value) {
   return window.DOMPurify ? DOMPurify.sanitize(html) : document.createTextNode(value).textContent;
 }
 
+function normalizeToolChartText(value) {
+  const match = String(value).match(/<\\|tool_call_start\\|>\\s*\\[\\s*chart\\s*\\(([\\s\\S]*?)\\)\\s*\\]\\s*<\\|tool_call_end\\|>/i);
+  if (!match) return value;
+  const args = match[1];
+  const title = args.match(/title\\s*=\\s*(['"])(.*?)\\1/i)?.[2] || "Chart";
+  const labelsBody = args.match(/labels\\s*=\\s*\\[([\\s\\S]*?)\\]/i)?.[1];
+  const datasetBody = args.match(/datasets\\s*=\\s*\\[([\\s\\S]*)\\]\\s*$/i)?.[1];
+  if (labelsBody == null || datasetBody == null) return value;
+  const labels = [...labelsBody.matchAll(/(['"])(.*?)\\1/g)].map((item) => item[2]);
+  const datasetLabel = datasetBody.match(/label\\s*=\\s*(['"])(.*?)\\1/i)?.[2] || "Values";
+  const valuesBody = datasetBody.match(/data\\s*=\\s*\\[([\\d.,\\s-]+)\\]/i)?.[1];
+  if (!labels.length || valuesBody == null) return value;
+  const values = valuesBody.split(",").map((item) => Number(item.trim()));
+  if (values.length !== labels.length || values.some((item) => !Number.isFinite(item))) return value;
+  return "```chart\\n" + JSON.stringify({ type: "bar", title, labels, datasets: [{ label: datasetLabel, data: values }] }) + "\\n```";
+}
 function enhanceRichOutput(root) {
   root.querySelectorAll("pre > code").forEach((code) => {
     const pre = code.parentElement;
-    const match = code.className.match(/language-([\\w+-]+)/);
+    const match = code.className.match(/language-([\w+-]+)/);
     const language = (match && match[1] ? match[1] : "text").toLowerCase();
     pre.dataset.language = language;
 
@@ -192,7 +208,7 @@ function createMessage(message, type, provider = "") {
   li.className = `chat ${type}`;
   const wrapper = document.createElement("div");
   const paragraph = document.createElement("p");
-  if (type === "incoming") { paragraph.innerHTML = safeMarkdown(message); enhanceRichOutput(paragraph); }
+  if (type === "incoming") { message = normalizeToolChartText(message); paragraph.innerHTML = safeMarkdown(message); enhanceRichOutput(paragraph); }
   else paragraph.textContent = message;
   wrapper.appendChild(paragraph);
 
