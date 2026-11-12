@@ -29,8 +29,8 @@ function normalizeChartToolCall(reply) {
   const datasetBody = args.match(/datasets\s*=\s*\[([\s\S]*)\]\s*$/i)?.[1];
   if (labelsBody == null || datasetBody == null) return reply;
   const labels = [...labelsBody.matchAll(/(['"])(.*?)\1/g)].map((item) => item[2]);
-  const datasetLabel = datasetBody.match(/label\s*=\s*(['"])(.*?)\1/i)?.[2] || "Values";
-  const valuesBody = datasetBody.match(/data\s*=\s*\[([\d.,\s-]+)\]/i)?.[1];
+  const datasetLabel = datasetBody.match(/label\s*(?:=|:)\s*(['"])(.*?)\1/i)?.[2] || "Values";
+  const valuesBody = datasetBody.match(/data\s*(?:=|:)\s*\[([\d.,\s-]+)\]/i)?.[1];
   if (!labels.length || valuesBody == null) return reply;
   const values = valuesBody.split(",").map((value) => Number(value.trim())).filter(Number.isFinite);
   if (values.length !== labels.length) return reply;
