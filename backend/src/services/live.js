@@ -168,9 +168,10 @@ export async function getLiveContext(prompt) {
   const jobs = [];
   if (/\bweather\b/i.test(text)) jobs.push(weather);
   if (/\b(news|headlines|breaking|latest updates)\b/i.test(text)) jobs.push(news);
-  if (/\b(live score|scoreboard|fixtures|match today|match now|sports|cricket|ipl|nba|football|soccer|tennis|basketball|baseball|hockey|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand)|ind\s*(?:vs|v\.)\s*nz)\b/i.test(text)) jobs.push(sports);
+  if (/\b(live score|scoreboard|fixtures|match today|match now|sports|cricket|ipl|nba|football|soccer|premier league|champions league|tennis|basketball|baseball|hockey|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand)|ind\s*(?:vs|v\.)\s*nz)\b/i.test(text)) jobs.push(sports);
   if (/\b[A-Z]{3}\s*(?:to|in|into|→)\s*[A-Z]{3}\b/i.test(text)) jobs.push(currency);
   if (/\b(bitcoin|btc|ethereum|eth|solana|dogecoin|doge|crypto|cryptocurrency|xrp|ripple)\b/i.test(text)) jobs.push(crypto);
+  if (/\b(nifty|nifty 50|sensex|bse|nse|s&p 500|sp500|nasdaq|dow jones|market index)\b/i.test(text)) jobs.push(markets);
   if (/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(text)) jobs.push(github);
   if (!jobs.length) return null;
   const settled = await Promise.allSettled(jobs.map((job) => cachedLive(job, text)));
