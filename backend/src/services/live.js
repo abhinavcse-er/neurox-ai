@@ -176,9 +176,28 @@ async function markets(prompt) {
   const data = quotes.map((item, index) => item.status === "fulfilled" ? item.value : ({ name: selected[index].name, error: "Quote unavailable from the free provider." }));
   return packageResult("markets", { indexes: data }, data.filter((item) => item.sourceUrl).map((item) => ({ name: "Yahoo Finance chart data", url: item.sourceUrl })));
 }
+async function getYahooStockChart(symbol) {
+  const hosts = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
+  const attempts = [];
+  for (const host of hosts) {
+    const url = `https://${host}/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
+    try {
+      const payload = await getJson(url, "Yahoo Finance stock quote");
+      const chart = payload.chart?.result?.[0];
+      if (chart?.meta) return { meta: chart.meta, sourceUrl: url };
+      const detail = payload.chart?.error?.description || "Provider returned no quote data";
+      attempts.push(`${host}: ${detail}`);
+    } catch (error) {
+      attempts.push(`${host}: ${error.message}`);
+    }
+  }
+  throw new Error(attempts.join("; ").slice(0, 500) || "Stock quote provider unavailable");
+}
+
 async function stockQuotes(prompt) {
   const items = [
-    { re: /\b(reliance|reliance industries)\b/i, symbol: "RELIANCE.NS", name: "Reliance Industries" },
+    // Accept a common dropped-first-letter typo in short prompts as well.
+    { re: /\b(reliance|eliance|reliance industries)\b/i, symbol: "RELIANCE.NS", name: "Reliance Industries" },
     { re: /\b(tcs|tata consultancy)\b/i, symbol: "TCS.NS", name: "Tata Consultancy Services" },
     { re: /\b(infosys|infy)\b/i, symbol: "INFY.NS", name: "Infosys" },
     { re: /\b(hdfc bank)\b/i, symbol: "HDFCBANK.NS", name: "HDFC Bank" },
@@ -192,14 +211,23 @@ async function stockQuotes(prompt) {
   const selected = items.filter((item) => item.re.test(prompt));
   if (!selected.length) return null;
   const results = await Promise.allSettled(selected.map(async (item) => {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?range=1d&interval=5m`;
-    const json = await getJson(url, "Stock quote");
-    const meta = json.chart?.result?.[0]?.meta;
-    if (!meta) throw new Error("No stock quote returned");
-    return { company: item.name, symbol: item.symbol, price: meta.regularMarketPrice ?? null, currency: meta.currency || null, exchange: meta.fullExchangeName || meta.exchangeName || null, previousClose: meta.chartPreviousClose ?? meta.previousClose ?? null, quoteTime: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null, sourceUrl: url, note: "Public Yahoo Finance quote; timing and exchange delay may vary." };
+    const { meta, sourceUrl } = await getYahooStockChart(item.symbol);
+    return {
+      company: item.name, symbol: item.symbol,
+      price: meta.regularMarketPrice ?? null,
+      currency: meta.currency || null,
+      exchange: meta.fullExchangeName || meta.exchangeName || null,
+      previousClose: meta.chartPreviousClose ?? meta.previousClose ?? null,
+      quoteTime: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null,
+      sourceUrl,
+      note: "Yahoo Finance chart data; quote timing and exchange delay may vary."
+    };
   }));
-  const quotes = results.map((r, i) => r.status === "fulfilled" ? r.value : ({ company: selected[i].name, symbol: selected[i].symbol, error: "Quote unavailable." }));
-  return packageResult("stocks", { quotes }, quotes.filter((q) => q.sourceUrl).map((q) => ({ name: "Yahoo Finance chart", url: q.sourceUrl })));
+  const quotes = results.map((result, index) => result.status === "fulfilled"
+    ? result.value
+    : ({ company: selected[index].name, symbol: selected[index].symbol, error: `Quote unavailable: ${result.reason?.message || "provider error"}` }));
+  return packageResult("stocks", { quotes }, quotes.filter((quote) => quote.sourceUrl)
+    .map((quote) => ({ name: "Yahoo Finance chart", url: quote.sourceUrl })));
 }
 
 async function webSearch(prompt) {
