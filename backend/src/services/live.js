@@ -110,6 +110,30 @@ async function sports(prompt) {
   }));
   return packageResult("sports", { sport, events, notice: events.length ? undefined : "No events returned for this scoreboard window; do not claim no match is scheduled." }, [{ name: "ESPN scoreboard", url }]);
 }
+async function tennis(prompt) {
+  const tours = [];
+  if (/\b(atp|mens tennis|mens singles)\b/i.test(prompt) || !/\b(wta|womens tennis|womens singles)\b/i.test(prompt)) tours.push("atp");
+  if (/\b(wta|womens tennis|womens singles|tennis)\b/i.test(prompt)) tours.push("wta");
+  const results = await Promise.allSettled(tours.map(async (tour) => {
+    const url = \`https://site.api.espn.com/apis/site/v2/sports/tennis/\${tour}/scoreboard\`;
+    const payload = await getJson(url, \`ESPN \${tour.toUpperCase()} tennis scoreboard\`);
+    const tournaments = (payload.events || []).map((event) => ({
+      name: event.name, date: event.date,
+      matches: (event.groupings || []).flatMap((group) => (group.competitions || []).map((match) => ({
+        id: match.id, round: match.round?.displayName || match.round?.name || null,
+        status: match.status?.type?.description || match.status?.type?.detail || null,
+        competitors: (match.competitors || []).map((player) => ({
+          name: player.athlete?.displayName || player.team?.displayName || player.displayName || null,
+          winner: player.winner ?? false, score: player.score ?? null,
+          linescores: player.linescores?.map((set) => set.displayValue || set.value) || []
+        }))
+      })))
+    }));
+    return { tour: tour.toUpperCase(), tournaments, sourceUrl: url };
+  }));
+  const data = results.map((item, i) => item.status === "fulfilled" ? item.value : ({ tour: tours[i].toUpperCase(), error: "Tennis scoreboard unavailable from ESPN." }));
+  return packageResult("tennis", { tours: data }, data.filter((item) => item.sourceUrl).map((item) => ({ name: "ESPN tennis scoreboard", url: item.sourceUrl })));
+}
 async function currency(prompt) {
   const match = prompt.match(/\b(?:(\d+(?:[,.]\d+)?)\s*)?([A-Z]{3})\s*(?:to|in|into|→)\s*([A-Z]{3})\b/i);
   if (!match) return null;
@@ -176,6 +200,7 @@ export async function getLiveContext(prompt) {
   const jobs = [];
   if (/\bweather\b/i.test(text)) jobs.push(weather);
   if (/\b(news|headlines|breaking|latest updates)\b/i.test(text)) jobs.push(news);
+  if (/\b(tennis|atp|wta|mens tennis|womens tennis)\b/i.test(text)) jobs.push(tennis);
   if (/\b(live score|scoreboard|fixtures|match today|match now|sports|cricket|ipl|nba|football|soccer|premier league|champions league|tennis|basketball|baseball|hockey|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand)|ind\s*(?:vs|v\.)\s*nz)\b/i.test(text)) jobs.push(sports);
   if (/\b[A-Z]{3}\s*(?:to|in|into|→)\s*[A-Z]{3}\b/i.test(text)) jobs.push(currency);
   if (/\b(bitcoin|btc|ethereum|eth|solana|dogecoin|doge|crypto|cryptocurrency|xrp|ripple)\b/i.test(text)) jobs.push(crypto);
