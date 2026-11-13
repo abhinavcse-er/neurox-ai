@@ -18,6 +18,8 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: TAVILY_API_KEY
+        sync: false          # Optional: free-tier web search; never expose in frontend
       - key: AI_PROVIDER_ORDER
         value: gemini,groq,openrouter
       - key: ALLOWED_ORIGINS
