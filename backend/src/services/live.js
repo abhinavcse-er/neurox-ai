@@ -176,7 +176,32 @@ async function markets(prompt) {
   const data = quotes.map((item, index) => item.status === "fulfilled" ? item.value : ({ name: selected[index].name, error: "Quote unavailable from the free provider." }));
   return packageResult("markets", { indexes: data }, data.filter((item) => item.sourceUrl).map((item) => ({ name: "Yahoo Finance chart data", url: item.sourceUrl })));
 }
-async function github(prompt) {
+async function stockQuotes(prompt) {
+  const items = [
+    { re: /\b(reliance|reliance industries)\b/i, symbol: "RELIANCE.NS", name: "Reliance Industries" },
+    { re: /\b(tcs|tata consultancy)\b/i, symbol: "TCS.NS", name: "Tata Consultancy Services" },
+    { re: /\b(infosys|infy)\b/i, symbol: "INFY.NS", name: "Infosys" },
+    { re: /\b(hdfc bank)\b/i, symbol: "HDFCBANK.NS", name: "HDFC Bank" },
+    { re: /\b(icici bank)\b/i, symbol: "ICICIBANK.NS", name: "ICICI Bank" },
+    { re: /\b(sbi|state bank of india)\b/i, symbol: "SBIN.NS", name: "State Bank of India" },
+    { re: /\b(apple|aapl)\b/i, symbol: "AAPL", name: "Apple" },
+    { re: /\b(microsoft|msft)\b/i, symbol: "MSFT", name: "Microsoft" },
+    { re: /\b(nvidia|nvda)\b/i, symbol: "NVDA", name: "NVIDIA" },
+    { re: /\b(tesla|tsla)\b/i, symbol: "TSLA", name: "Tesla" }
+  ];
+  const selected = items.filter((item) => item.re.test(prompt));
+  if (!selected.length) return null;
+  const results = await Promise.allSettled(selected.map(async (item) => {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?range=1d&interval=5m`;
+    const json = await getJson(url, "Stock quote");
+    const meta = json.chart?.result?.[0]?.meta;
+    if (!meta) throw new Error("No stock quote returned");
+    return { company: item.name, symbol: item.symbol, price: meta.regularMarketPrice ?? null, currency: meta.currency || null, exchange: meta.fullExchangeName || meta.exchangeName || null, previousClose: meta.chartPreviousClose ?? meta.previousClose ?? null, quoteTime: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null, sourceUrl: url, note: "Public Yahoo Finance quote; timing and exchange delay may vary." };
+  }));
+  const quotes = results.map((r, i) => r.status === "fulfilled" ? r.value : ({ company: selected[i].name, symbol: selected[i].symbol, error: "Quote unavailable." }));
+  return packageResult("stocks", { quotes }, quotes.filter((q) => q.sourceUrl).map((q) => ({ name: "Yahoo Finance chart", url: q.sourceUrl })));
+}
+\nasync function github(prompt) {
   const match = prompt.match(/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/i);
   if (!match) return null;
   const repo = match[1].replace(/\.git$/i, "");
