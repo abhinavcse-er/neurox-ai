@@ -201,7 +201,26 @@ async function stockQuotes(prompt) {
   const quotes = results.map((r, i) => r.status === "fulfilled" ? r.value : ({ company: selected[i].name, symbol: selected[i].symbol, error: "Quote unavailable." }));
   return packageResult("stocks", { quotes }, quotes.filter((q) => q.sourceUrl).map((q) => ({ name: "Yahoo Finance chart", url: q.sourceUrl })));
 }
-\nasync function github(prompt) {
+
+async function webSearch(prompt) {
+  const query = clean(prompt.replace(/\b(search|web|internet|find|look up|online|about)\b/gi, " ").replace(/\s+/g, " ")) || clean(prompt);
+  if (process.env.TAVILY_API_KEY) {
+    const url = "https://api.tavily.com/search";
+    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ api_key: process.env.TAVILY_API_KEY, query, search_depth: "basic", max_results: 5, include_answer: false }), signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (!response.ok) throw new Error(`Tavily search returned HTTP ${response.status}`);
+    const payload = await response.json();
+    const results = (payload.results || []).slice(0, 5).map((item) => ({ title: clean(item.title), url: item.url, snippet: clean(item.content), publishedAt: item.published_date || null }));
+    return packageResult("web-search", { query, results, provider: "Tavily" }, [{ name: "Tavily Search", url: "https://tavily.com/" }]);
+  }
+  const url = new URL("https://en.wikipedia.org/w/api.php");
+  url.search = new URLSearchParams({ action: "opensearch", search: query, limit: "5", namespace: "0", format: "json", origin: "*" }).toString();
+  const response = await fetch(url, { headers: { Accept: "application/json", "User-Agent": USER_AGENT }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  if (!response.ok) throw new Error(`Wikipedia search returned HTTP ${response.status}`);
+  const payload = await response.json();
+  const results = (payload[1] || []).map((title, i) => ({ title: clean(title), url: payload[3]?.[i] || null, snippet: "Wikipedia encyclopedia result; not a full web search result." }));
+  return packageResult("web-search", { query, results, provider: "Wikipedia OpenSearch", limitation: "For broad web search, set TAVILY_API_KEY in Render using its free tier." }, [{ name: "Wikipedia OpenSearch", url: url.toString() }]);
+}
+async function github(prompt) {
   const match = prompt.match(/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/i);
   if (!match) return null;
   const repo = match[1].replace(/\.git$/i, "");
@@ -230,6 +249,7 @@ export async function getLiveContext(prompt) {
   if (/\b[A-Z]{3}\s*(?:to|in|into|→)\s*[A-Z]{3}\b/i.test(text)) jobs.push(currency);
   if (/\b(bitcoin|btc|ethereum|eth|solana|dogecoin|doge|crypto|cryptocurrency|xrp|ripple)\b/i.test(text)) jobs.push(crypto);
   if (/\b(nifty|nifty 50|sensex|bse|nse|s&p 500|sp500|nasdaq|dow jones|market index)\b/i.test(text)) jobs.push(markets);
+  if (/\b(search the web|web search|search online|search internet|look up online)\b/i.test(text)) jobs.push(webSearch);
   if (/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(text)) jobs.push(github);
   if (!jobs.length) return null;
   const settled = await Promise.allSettled(jobs.map((job) => cachedLive(job, text)));
