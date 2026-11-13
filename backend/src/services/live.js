@@ -6,7 +6,7 @@
 const USER_AGENT = "NeuroXAI/1.0 (+https://neuroaii.netlify.app)";
 const TIMEOUT_MS = 9000;
 const liveCache = new Map();
-const CACHE_TTL = { weather: 10 * 60_000, news: 5 * 60_000, sports: 30_000, currency: 60 * 60_000, crypto: 60_000, github: 10 * 60_000, markets: 60_000 };
+const CACHE_TTL = { weather: 10 * 60_000, news: 5 * 60_000, sports: 30_000, currency: 60 * 60_000, crypto: 60_000, github: 10 * 60_000, markets: 60_000, tennis: 30_000, stockQuotes: 60_000, webSearch: 5 * 60_000 };
 async function cachedLive(job, prompt) {
   const key = `${job.name}:${prompt.toLowerCase().replace(/\\s+/g, " ").trim()}`;
   const cached = liveCache.get(key);
@@ -245,10 +245,11 @@ export async function getLiveContext(prompt) {
   if (/\bweather\b/i.test(text)) jobs.push(weather);
   if (/\b(news|headlines|breaking|latest updates)\b/i.test(text)) jobs.push(news);
   if (/\b(tennis|atp|wta|mens tennis|womens tennis)\b/i.test(text)) jobs.push(tennis);
-  if (/\b(live score|scoreboard|fixtures|match today|match now|sports|cricket|ipl|nba|football|soccer|premier league|champions league|tennis|basketball|baseball|hockey|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand)|ind\s*(?:vs|v\.)\s*nz)\b/i.test(text)) jobs.push(sports);
+  if (/\b(live score|scoreboard|fixtures|match today|match now|sports|cricket|ipl|nba|football|soccer|premier league|champions league|basketball|baseball|hockey|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand)|ind\s*(?:vs|v\.)\s*nz)\b/i.test(text)) jobs.push(sports);
   if (/\b[A-Z]{3}\s*(?:to|in|into|→)\s*[A-Z]{3}\b/i.test(text)) jobs.push(currency);
   if (/\b(bitcoin|btc|ethereum|eth|solana|dogecoin|doge|crypto|cryptocurrency|xrp|ripple)\b/i.test(text)) jobs.push(crypto);
   if (/\b(nifty|nifty 50|sensex|bse|nse|s&p 500|sp500|nasdaq|dow jones|market index)\b/i.test(text)) jobs.push(markets);
+  if (/\b(stock|stocks|share price|stock price|reliance|tcs|infosys|hdfc bank|icici bank|sbi|apple|microsoft|nvidia|tesla|aapl|msft|nvda|tsla)\b/i.test(text)) jobs.push(stockQuotes);
   if (/\b(search the web|web search|search online|search internet|look up online)\b/i.test(text)) jobs.push(webSearch);
   if (/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(text)) jobs.push(github);
   if (!jobs.length) return null;
