@@ -2,6 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { getAIResponse, getAvailableModels, streamAIResponse } from "../services/ai.js";
 import { getWikiSummary } from "../services/wikipedia.js";
+import { buildLivePrompt, getLiveContext } from "../services/live.js";
 
 const router = Router();
 
@@ -43,12 +44,16 @@ router.post("/", chatLimiter, async (req, res) => {
   }).reverse();
 
   try {
+    const liveData = await getLiveContext(prompt);
+    const aiPrompt = buildLivePrompt(prompt, liveData);
+
     // Wikipedia is a free knowledge fallback for direct factual lookups.
     const wikiReply = provider === "auto" ? await getWikiSummary(prompt) : null;
     if (wikiReply) return res.json({ reply: wikiReply, provider: "wikipedia" });
 
     // AI providers are attempted in configured order; failures automatically fall back.
-    const result = await getAIResponse(prompt, provider, boundedHistory, mode);
+    const result = await getAIResponse(aiPrompt, provider, boundedHistory, mode);
+    if (liveData?.length) result.liveData = liveData.map((item) => ({ category: item.category, retrievedAt: item.retrievedAt, sources: item.sources || [], error: item.error || null }));
     return res.json(result);
   } catch (err) {
     console.error("[chat] Error:", err.message);
@@ -103,6 +108,9 @@ router.post("/stream", chatLimiter, async (req, res) => {
   const heartbeat = setInterval(() => sendEvent("ping", { at: Date.now() }), 12000);
 
   try {
+    const liveData = await getLiveContext(prompt);
+    const aiPrompt = buildLivePrompt(prompt, liveData);
+
     // Preserve the existing free Wikipedia fallback for general factual lookups.
     // Stream it as one complete token so the frontend uses the same rendering path.
     if (provider === "auto" && safeMode === "general") {
@@ -115,10 +123,10 @@ router.post("/stream", chatLimiter, async (req, res) => {
     }
 
     const result = await streamAIResponse(
-      prompt, provider, boundedHistory, safeMode,
+      aiPrompt, provider, boundedHistory, safeMode,
       (token) => sendEvent("token", { token })
     );
-    sendEvent("done", { provider: result.provider });
+    sendEvent("done", { provider: result.provider, liveData: liveData?.map((item) => ({ category: item.category, retrievedAt: item.retrievedAt, sources: item.sources || [], error: item.error || null })) || [] });
   } catch (err) {
     console.error("[chat-stream] Error:", err.message);
     sendEvent("error", { error: "The AI stream was interrupted. Please retry or switch provider." });
