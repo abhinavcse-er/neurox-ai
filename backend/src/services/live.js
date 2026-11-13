@@ -5,6 +5,22 @@
  */
 const USER_AGENT = "NeuroXAI/1.0 (+https://neuroaii.netlify.app)";
 const TIMEOUT_MS = 9000;
+const liveCache = new Map();
+const CACHE_TTL = { weather: 10 * 60_000, news: 5 * 60_000, sports: 30_000, currency: 60 * 60_000, crypto: 60_000, github: 10 * 60_000 };
+async function cachedLive(job, prompt) {
+  const key = `${job.name}:${prompt.toLowerCase().replace(/\\s+/g, " ").trim()}`;
+  const cached = liveCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  try {
+    const value = await job(prompt);
+    liveCache.set(key, { value, expiresAt: Date.now() + (CACHE_TTL[job.name] || 60_000) });
+    if (liveCache.size > 250) {
+      for (const [cacheKey, entry] of liveCache) if (entry.expiresAt <= Date.now()) liveCache.delete(cacheKey);
+      while (liveCache.size > 250) liveCache.delete(liveCache.keys().next().value);
+    }
+    return value;
+  } catch (error) { throw error; }
+}
 
 async function getJson(url, label) {
   const response = await fetch(url, {
@@ -136,7 +152,7 @@ export async function getLiveContext(prompt) {
   if (/\b(bitcoin|btc|ethereum|eth|solana|dogecoin|doge|crypto|cryptocurrency|xrp|ripple)\b/i.test(text)) jobs.push(crypto);
   if (/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(text)) jobs.push(github);
   if (!jobs.length) return null;
-  const settled = await Promise.allSettled(jobs.map((job) => job(text)));
+  const settled = await Promise.allSettled(jobs.map((job) => cachedLive(job, text)));
   const results = settled.map((item, index) => item.status === "fulfilled" ? item.value : ({
     category: jobs[index].name || "live-data",
     retrievedAt: stamp(),
