@@ -158,7 +158,15 @@ async function github(prompt) {
   const repo = match[1].replace(/\.git$/i, "");
   const url = `https://api.github.com/repos/${repo}`;
   const result = await getJson(url, "GitHub repository");
-  return packageResult("github", { fullName: result.full_name, description: result.description, stars: result.stargazers_count, forks: result.forks_count, language: result.language, defaultBranch: result.default_branch, updatedAt: result.updated_at, url: result.html_url }, [{ name: "GitHub repository API", url }]);
+  const readmeUrl = `https://api.github.com/repos/${repo}/readme`;
+  let readme = null;
+  try {
+    const readmeResult = await getJson(readmeUrl, "GitHub README");
+    if (readmeResult.encoding === "base64" && typeof readmeResult.content === "string") {
+      readme = Buffer.from(readmeResult.content, "base64").toString("utf8").slice(0, 7000);
+    }
+  } catch { /* A repository may not contain a README; metadata remains useful. */ }
+  return packageResult("github", { fullName: result.full_name, description: result.description, stars: result.stargazers_count, forks: result.forks_count, language: result.language, defaultBranch: result.default_branch, updatedAt: result.updated_at, url: result.html_url, readmeExcerpt: readme }, [{ name: "GitHub repository API", url }, ...(readme ? [{ name: "GitHub README API", url: readmeUrl }] : [])]);
 }
 
 /** Return live context only when a prompt clearly requests a supported live category. */
