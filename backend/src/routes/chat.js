@@ -48,7 +48,7 @@ router.post("/", chatLimiter, async (req, res) => {
     const aiPrompt = buildLivePrompt(prompt, liveData);
 
     // Wikipedia is a free knowledge fallback for direct factual lookups.
-    const wikiReply = provider === "auto" ? await getWikiSummary(prompt) : null;
+    const wikiReply = provider === "auto" && !liveData?.length ? await getWikiSummary(prompt) : null;
     if (wikiReply) return res.json({ reply: wikiReply, provider: "wikipedia" });
 
     // AI providers are attempted in configured order; failures automatically fall back.
@@ -113,7 +113,7 @@ router.post("/stream", chatLimiter, async (req, res) => {
 
     // Preserve the existing free Wikipedia fallback for general factual lookups.
     // Stream it as one complete token so the frontend uses the same rendering path.
-    if (provider === "auto" && safeMode === "general") {
+    if (provider === "auto" && safeMode === "general" && !liveData?.length) {
       const wikiReply = await getWikiSummary(prompt);
       if (wikiReply) {
         sendEvent("token", { token: wikiReply });
