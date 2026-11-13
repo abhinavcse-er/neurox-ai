@@ -60,7 +60,7 @@ async function news(prompt) {
   return packageResult("news", { query, articles, notice: articles.length ? undefined : "No matching articles were returned in the last 24 hours." }, [{ name: "GDELT Project — news discovery", url: url.toString() }]);
 }
 async function sports(prompt) {
-  const isCricket = /\b(cricket|ipl|test match|odi|t20|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand|australia|england|pakistan|south africa|bangladesh|sri lanka))\b/i.test(prompt);
+  const isCricket = /\b(cricket|ipl|test match|odi|t20|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand|australia|england|pakistan|south africa|bangladesh|sri lanka)|ind\s*(?:vs|v\.)\s*nz)\b/i.test(prompt);
   if (isCricket) {
     const url = "https://site.api.espn.com/apis/personalized/v2/scoreboard/header?sport=cricket&region=in&tz=Asia%2FCalcutta";
     const result = await getJson(url, "Cricket fixtures");
@@ -124,7 +124,7 @@ export async function getLiveContext(prompt) {
   const jobs = [];
   if (/\bweather\b/i.test(text)) jobs.push(weather);
   if (/\b(news|headlines|breaking|latest updates)\b/i.test(text)) jobs.push(news);
-  if (/\b(live score|scoreboard|fixtures|match today|match now|sports|cricket|ipl|nba|football|soccer|tennis|basketball|baseball|hockey|world cup)\b/i.test(text)) jobs.push(sports);
+  if (/\b(live score|scoreboard|fixtures|match today|match now|sports|cricket|ipl|nba|football|soccer|tennis|basketball|baseball|hockey|world cup|india\s*(?:vs|v\.)\s*(?:nz|new zealand)|ind\s*(?:vs|v\.)\s*nz)\b/i.test(text)) jobs.push(sports);
   if (/\b[A-Z]{3}\s*(?:to|in|into|→)\s*[A-Z]{3}\b/i.test(text)) jobs.push(currency);
   if (/\b(bitcoin|btc|ethereum|eth|solana|dogecoin|doge|crypto|cryptocurrency|xrp|ripple)\b/i.test(text)) jobs.push(crypto);
   if (/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/i.test(text)) jobs.push(github);
