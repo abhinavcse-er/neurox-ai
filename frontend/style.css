@@ -2112,3 +2112,248 @@ body.light .send-btn{background:#315b76!important;border-color:#315b76!important
  .welcome-orb{width:55px;height:55px}
  .composer-tools{gap:5px!important}
 }
+
+
+/* =========================================================
+   NEUROX — final visual pass: precise hierarchy & alignment
+   ========================================================= */
+:root{
+ --nx-bg:#0b0f14;
+ --nx-panel:#111820;
+ --nx-panel-alt:#151f29;
+ --nx-border:#26323e;
+ --nx-border-hover:#40586c;
+ --nx-text:#e9eef3;
+ --nx-muted:#9aa7b4;
+ --nx-accent:#9abbd3;
+}
+body{background:var(--nx-bg)!important}
+.top-bar{
+ height:66px!important;min-height:66px!important;flex-basis:66px!important;
+ background:rgba(12,17,23,.96)!important;
+ border-bottom:1px solid #222d38!important;
+ padding-inline:clamp(20px,3vw,44px)!important;
+}
+.brand{gap:11px!important;min-width:0}
+.brand-mark{
+ width:32px!important;height:32px!important;
+ border:1px solid #354a5b;border-radius:9px!important;
+ background:#17232d;padding:3px;
+}
+.brand>span{
+ display:block!important;flex:none!important;
+ color:#edf2f6;font:700 16px/1.05 var(--nx-heading)!important;
+ letter-spacing:-.55px;
+}
+.brand-accent{display:inline!important;margin-left:3px!important;color:#9bbbd2!important}
+.brand small{
+ display:block!important;margin-top:5px!important;
+ color:#8493a2!important;font:600 7px/1 var(--nx-font)!important;
+ letter-spacing:1.45px!important;
+}
+.top-actions{gap:8px!important}
+.top-actions .icon-btn{
+ width:34px!important;height:34px!important;
+ border-radius:8px!important;background:transparent!important;
+ border-color:transparent!important;color:#9aa8b6!important;
+}
+.top-actions .icon-btn:hover{
+ background:#19232d!important;border-color:#2d3d4b!important;color:#e3edf4!important;
+}
+.login-btn{height:34px;padding-inline:13px!important;border-radius:8px!important}
+.main-wrapper{background:#0b0f14!important}
+.history-sidebar{
+ background:#0e141b!important;border-right:1px solid #222d38!important;
+ padding:17px 12px!important;gap:14px!important;
+}
+.new-chat-btn{
+ min-height:40px!important;border-radius:8px!important;
+ background:#1b2b38!important;border:1px solid #344c60!important;
+ color:#e0edf5!important;font-weight:600!important;
+}
+.new-chat-btn i{background:transparent!important;border:0!important;color:#a9cce3!important}
+.history-search{
+ min-height:37px!important;background:#111922!important;
+ border:1px solid #26323e!important;border-radius:8px!important;
+}
+.history-search:focus-within{border-color:#59768c!important;box-shadow:0 0 0 3px rgba(125,166,194,.08)!important}
+.history-label{font-size:9px!important;letter-spacing:1.25px!important}
+.history-item{
+ min-height:37px!important;padding:6px 8px!important;
+ border-radius:7px!important;color:#aab5c0!important;
+}
+.history-item i{
+ width:23px!important;height:23px!important;flex-basis:23px!important;
+ border:0!important;background:transparent!important;
+ color:#8495a5!important;font-size:11px!important;
+}
+.history-item.active{
+ background:#182631!important;border:1px solid #293e4e!important;
+ color:#e0eaf1!important;
+}
+.history-item.active i{background:transparent!important;color:#a8c8df!important}
+.sidebar-bottom{margin-top:auto!important}
+.privacy-note{padding:10px!important;background:#111a1d!important}
+.chat-stage{background:#0b1016!important}
+.chat-stage-head{
+ height:61px!important;min-height:61px!important;
+ background:#0d131a!important;border-bottom:1px solid #222d38!important;
+}
+.chat-heading p{margin-bottom:4px!important;font-size:8px!important;letter-spacing:1.55px!important;color:#8393a2!important}
+.chat-heading h1{font-size:14px!important;font-weight:650!important;letter-spacing:-.25px!important}
+.export-btn{
+ min-height:32px!important;padding:6px 10px!important;
+ background:#121a23!important;border:1px solid #2a3744!important;
+ border-radius:7px!important;color:#b3c0cc!important;
+}
+.export-btn:hover{background:#192531!important;border-color:#4a6377!important}
+.welcome-panel{
+ width:min(100%,800px)!important;
+ margin:clamp(26px,7vh,76px) auto 25px!important;
+}
+.welcome-orb{
+ width:58px!important;height:58px!important;margin-bottom:20px!important;
+ border-radius:16px!important;
+ background:linear-gradient(145deg,#1c2d3a,#121c26)!important;
+ border:1px solid #3a5366!important;
+ box-shadow:0 10px 26px rgba(0,0,0,.16)!important;
+}
+.welcome-orb img{width:35px!important;height:35px!important}
+.welcome-panel .eyebrow{
+ color:#9abbd3!important;font-size:8px!important;
+ letter-spacing:2px!important;font-weight:700!important;
+}
+.welcome-panel h2{
+ margin:12px 0!important;
+ font-size:clamp(32px,4vw,44px)!important;
+ line-height:1.13!important;letter-spacing:-1.75px!important;
+ font-weight:650!important;
+}
+.welcome-panel h2 span{color:#a7c7dc!important}
+.welcome-copy{
+ max-width:535px!important;margin:0 auto 25px!important;
+ color:#9aa8b6!important;font-size:12px!important;line-height:1.8!important;
+}
+.suggestions{
+ width:min(100%,690px)!important;gap:10px!important;
+}
+.suggestions button{
+ min-height:76px!important;padding:12px!important;gap:11px!important;
+ grid-template-columns:34px minmax(0,1fr)!important;
+ border:1px solid #293641!important;border-radius:9px!important;
+ background:#111922!important;box-shadow:none!important;
+}
+.suggestions button>i{
+ width:34px!important;height:34px!important;
+ border-radius:8px!important;border:1px solid #344b5e!important;
+ background:#1a2b39!important;color:#a9cbe1!important;
+ font-size:13px!important;
+}
+.suggestions button:nth-child(2)>i{
+ background:#202a35!important;border-color:#3a4858!important;color:#bac8d7!important;
+}
+.suggestions button:nth-child(3)>i{
+ background:#252431!important;border-color:#454052!important;color:#c6bfd9!important;
+}
+.suggestions button span{gap:4px!important}
+.suggestions b{font-size:10px!important;font-weight:650!important;color:#e0e8ef!important}
+.suggestions small{font-size:9px!important;color:#91a0af!important}
+.suggestions button:hover{
+ transform:translateY(-1px)!important;
+ border-color:#4b687d!important;background:#17232e!important;
+}
+.chat-stage .chat-list{max-width:980px!important;padding-inline:clamp(18px,4vw,56px)!important}
+.chat.incoming .message-content{
+ background:#111922!important;border:1px solid #263440!important;
+ border-radius:4px 10px 10px 10px!important;
+}
+.chat.outgoing .message-content{
+ background:#20384a!important;border:1px solid #354f63!important;
+ border-radius:10px 10px 4px 10px!important;
+}
+.chat .message-avatar{
+ width:27px!important;height:27px!important;flex-basis:27px!important;
+ border-radius:8px!important;box-shadow:none!important;
+}
+.chat .message-content{font-size:12.5px!important;line-height:1.78!important}
+.chat .message-meta{font-size:9px!important;color:#8593a1!important}
+.chat .copy-btn{
+ padding:5px 8px!important;border:1px solid #2b3946!important;
+ border-radius:6px!important;background:transparent!important;
+ color:#9eacb9!important;font-size:9px!important;
+}
+.chat .copy-btn::before{content:"\f0c5"!important;font-family:"Font Awesome 6 Free"!important;font-weight:900!important}
+.composer-wrap{
+ background:#0b1016!important;border-top:1px solid #222d38!important;
+ padding:11px clamp(14px,3vw,36px) 13px!important;
+}
+.composer-tools{max-width:850px!important;margin-bottom:8px!important}
+.composer-tools label{color:#aab6c2!important;font-size:9px!important}
+.composer-tools label i{color:#8eacc2!important}
+#mode-select,#model-select{
+ min-height:32px!important;border-radius:7px!important;
+ background:#121a23!important;border-color:#2c3a47!important;
+ color:#d4dee7!important;font-size:10px!important;
+}
+.input-area{
+ max-width:850px!important;min-height:56px!important;
+ border:1px solid #344352!important;border-radius:11px!important;
+ background:#121a23!important;padding:7px!important;
+ box-shadow:0 6px 20px rgba(0,0,0,.12)!important;
+}
+.input-area:focus-within{
+ border-color:#63839b!important;
+ box-shadow:0 0 0 3px rgba(122,165,194,.08)!important;
+}
+.input-area textarea{font-size:12px!important;color:#e8edf2!important}
+.file-btn{
+ width:34px!important;height:34px!important;flex-basis:34px!important;
+ border:1px solid transparent!important;background:transparent!important;
+ color:#9cabb9!important;border-radius:8px!important;
+}
+.file-btn:hover{background:#202d39!important;border-color:#344a5c!important;color:#d8e7f1!important}
+.send-btn{
+ width:36px!important;height:36px!important;flex-basis:36px!important;
+ border-radius:8px!important;background:#b8d3e4!important;
+ border:1px solid #b8d3e4!important;color:#132431!important;
+}
+.send-btn:hover{background:#d7e8f2!important;border-color:#d7e8f2!important}
+.composer-meta{max-width:850px!important;color:#7f8d9b!important;font-size:8px!important}
+.footer{
+ background:#0d131a!important;border-top:1px solid #222d38!important;
+ color:#7f8d9b!important;padding-block:8px!important;font-size:9px!important;
+}
+.footer a{color:#a8c4d8!important}
+body.light .brand>span{color:#233244!important}
+body.light .brand small{color:#82909d!important}
+body.light .top-bar{background:#fff!important;border-color:#e1e7ec!important}
+body.light .history-sidebar{background:#f1f4f6!important;border-color:#e1e7ec!important}
+body.light .history-item.active{background:#e5edf3!important;border-color:#d4e0e8!important}
+body.light .chat-stage{background:#f8fafb!important}
+body.light .chat-stage-head{background:#fff!important;border-color:#e3e8ed!important}
+body.light .welcome-panel h2{color:#263748!important}
+body.light .welcome-copy{color:#687888!important}
+body.light .suggestions button{background:#fff!important;border-color:#e0e6eb!important}
+body.light .suggestions b{color:#304254!important}
+body.light .suggestions small{color:#788797!important}
+body.light .composer-wrap{background:#f8fafb!important}
+body.light .input-area{background:#fff!important}
+body.light .footer{background:#fff!important;border-color:#e2e8ed!important}
+@media(max-width:760px){
+ .top-bar{height:58px!important;min-height:58px!important;flex-basis:58px!important;padding-inline:12px!important}
+ .brand-mark{width:29px!important;height:29px!important}
+ .brand>span{font-size:14px!important}
+ .brand small{font-size:6px!important;letter-spacing:1px!important}
+ .chat-stage-head{height:54px!important;min-height:54px!important;padding-inline:12px!important}
+ .welcome-panel{margin:30px auto 20px!important}
+ .welcome-panel h2{font-size:31px!important;letter-spacing:-1.1px!important}
+ .welcome-copy{font-size:11px!important;margin-bottom:19px!important}
+ .suggestions{max-width:420px!important}
+ .suggestions button{min-height:62px!important}
+ .chat-stage .chat-list{padding:15px 11px!important}
+ .composer-wrap{padding:8px 10px max(9px,env(safe-area-inset-bottom))!important}
+ .footer{font-size:8px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .suggestions button,.top-actions .icon-btn,.export-btn,.send-btn{transition:none!important}
+}
