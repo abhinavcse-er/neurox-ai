@@ -70,7 +70,14 @@ async function sports(prompt) {
       status: event.status?.type?.description || event.status?.type?.name,
       league: league.name, leagueId: league.id, link: event.links?.web?.href || null
     })));
-    return packageResult("sports", { sport: "cricket", competitions: leagues.map((l) => l.name), events: events.slice(0, 30), notice: events.length ? undefined : "No active cricket fixtures were returned by this provider. This is not proof that no match exists." }, [{ name: "ESPN cricket scoreboard header", url }]);
+    const summaries = await Promise.allSettled(events.slice(0, 8).map(async (event) => {
+      const summaryUrl = new URL(`https://site.web.api.espn.com/apis/site/v2/sports/cricket/${encodeURIComponent(event.leagueId)}/summary`);
+      summaryUrl.search = new URLSearchParams({ event: event.id, lang: "en", region: "in", contentorigin: "espn" }).toString();
+      const summary = await getJson(summaryUrl.toString(), "Cricket match summary");
+      return { event: event.name, date: event.date, status: event.status, summary: summary.matchcards || summary.header || summary.gameInfo || null, sourceUrl: summaryUrl.toString() };
+    }));
+    const scorecards = summaries.filter((item) => item.status === "fulfilled").map((item) => item.value);
+    return packageResult("sports", { sport: "cricket", competitions: leagues.map((l) => l.name), events: events.slice(0, 30), scorecards, notice: events.length ? undefined : "No active cricket fixtures were returned by this provider. This is not proof that no match exists." }, [{ name: "ESPN cricket scoreboard header", url }, ...scorecards.map((item) => ({ name: "ESPN cricket match summary", url: item.sourceUrl }))]);
   }
   const sport = /\b(football|soccer|premier league|champions league|la liga)\b/i.test(prompt) ? "soccer/eng.1"
     : /\b(nba|basketball)\b/i.test(prompt) ? "basketball/nba"
