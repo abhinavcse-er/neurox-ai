@@ -28,7 +28,7 @@ function packageResult(category, data, sources) {
 async function weather(prompt) {
   const match = prompt.match(/\bweather\s+(?:in|for|at)\s+([\p{L} .'-]{2,80}?)(?:\s+(?:today|tomorrow|this week|next week|now|currently)\b|[?.!,]|$)/iu);
   const city = clean(match?.[1] || "");
-  if (!city) return null;
+  if (!city) return packageResult("weather", { message: "Please specify a city or town so I can fetch the correct forecast." }, []);
   const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${enc(city)}&count=1&language=en&format=json`;
   const geo = await getJson(geoUrl, "Weather location search");
   const place = geo.results?.[0];
