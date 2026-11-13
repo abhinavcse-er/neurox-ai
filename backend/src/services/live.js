@@ -6,7 +6,7 @@
 const USER_AGENT = "NeuroXAI/1.0 (+https://neuroaii.netlify.app)";
 const TIMEOUT_MS = 9000;
 const liveCache = new Map();
-const CACHE_TTL = { weather: 10 * 60_000, news: 5 * 60_000, sports: 30_000, currency: 60 * 60_000, crypto: 60_000, github: 10 * 60_000 };
+const CACHE_TTL = { weather: 10 * 60_000, news: 5 * 60_000, sports: 30_000, currency: 60 * 60_000, crypto: 60_000, github: 10 * 60_000, markets: 60_000 };
 async function cachedLive(job, prompt) {
   const key = `${job.name}:${prompt.toLowerCase().replace(/\\s+/g, " ").trim()}`;
   const cached = liveCache.get(key);
@@ -130,6 +130,27 @@ async function crypto(prompt) {
   const data = result[COINS[coin]];
   if (!data) throw new Error("Crypto provider returned no matching asset");
   return packageResult("crypto", { asset: COINS[coin], ...data, lastUpdatedAt: data.last_updated_at ? new Date(data.last_updated_at * 1000).toISOString() : null }, [{ name: "CoinGecko", url }]);
+}
+async function markets(prompt) {
+  const indexes = [
+    { pattern: /\\b(nifty|nifty 50|nse)\\b/i, symbol: "%5ENSEI", name: "NIFTY 50" },
+    { pattern: /\\b(sensex|bse)\\b/i, symbol: "%5EBSESN", name: "BSE SENSEX" },
+    { pattern: /\\b(s&p 500|sp500)\\b/i, symbol: "%5EGSPC", name: "S&P 500" },
+    { pattern: /\\b(nasdaq)\\b/i, symbol: "%5EIXIC", name: "NASDAQ Composite" },
+    { pattern: /\\b(dow jones|dow)\\b/i, symbol: "%5EDJI", name: "Dow Jones Industrial Average" }
+  ];
+  const selected = indexes.filter((item) => item.pattern.test(prompt));
+  if (!selected.length) return null;
+  const quotes = await Promise.allSettled(selected.map(async (item) => {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${item.symbol}?range=1d&interval=5m`;
+    const result = await getJson(url, "Market index quote");
+    const chart = result.chart?.result?.[0];
+    if (!chart?.meta) throw new Error("Market provider returned no quote");
+    const meta = chart.meta;
+    return { name: item.name, symbol: meta.symbol, price: meta.regularMarketPrice ?? null, currency: meta.currency || null, exchange: meta.fullExchangeName || meta.exchangeName || null, previousClose: meta.chartPreviousClose ?? meta.previousClose ?? null, quoteTime: meta.regularMarketTime ? new Date(meta.regularMarketTime * 1000).toISOString() : null, sourceUrl: url, note: "Public Yahoo Finance chart endpoint; quote timing and exchange delay may vary." };
+  }));
+  const data = quotes.map((item, index) => item.status === "fulfilled" ? item.value : ({ name: selected[index].name, error: "Quote unavailable from the free provider." }));
+  return packageResult("markets", { indexes: data }, data.filter((item) => item.sourceUrl).map((item) => ({ name: "Yahoo Finance chart data", url: item.sourceUrl })));
 }
 async function github(prompt) {
   const match = prompt.match(/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/i);
