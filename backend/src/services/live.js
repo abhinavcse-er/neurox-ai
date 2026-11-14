@@ -8,7 +8,7 @@ const TIMEOUT_MS = 9000;
 const liveCache = new Map();
 const CACHE_TTL = { weather: 10 * 60_000, news: 5 * 60_000, sports: 30_000, currency: 60 * 60_000, crypto: 60_000, github: 10 * 60_000, markets: 60_000, tennis: 30_000, stockQuotes: 60_000, webSearch: 5 * 60_000 };
 async function cachedLive(job, prompt) {
-  const key = `${job.name}:${prompt.toLowerCase().replace(/\\s+/g, " ").trim()}`;
+  const key = `${job.name}:${prompt.toLowerCase().replace(/\s+/g, " ").trim()}`;
   const cached = liveCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
   try {
