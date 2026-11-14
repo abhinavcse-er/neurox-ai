@@ -115,8 +115,8 @@ async function tennis(prompt) {
   if (/\b(atp|mens tennis|mens singles)\b/i.test(prompt) || !/\b(wta|womens tennis|womens singles)\b/i.test(prompt)) tours.push("atp");
   if (/\b(wta|womens tennis|womens singles|tennis)\b/i.test(prompt)) tours.push("wta");
   const results = await Promise.allSettled(tours.map(async (tour) => {
-    const url = \`https://site.api.espn.com/apis/site/v2/sports/tennis/\${tour}/scoreboard\`;
-    const payload = await getJson(url, \`ESPN \${tour.toUpperCase()} tennis scoreboard\`);
+    const url = `https://site.api.espn.com/apis/site/v2/sports/tennis/${tour}/scoreboard`;
+    const payload = await getJson(url, `ESPN ${tour.toUpperCase()} tennis scoreboard`);
     const tournaments = (payload.events || []).map((event) => ({
       name: event.name, date: event.date,
       matches: (event.groupings || []).flatMap((group) => (group.competitions || []).map((match) => ({
